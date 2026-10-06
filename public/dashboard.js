@@ -6,6 +6,7 @@ import { initUiPreferences } from './ui/preferences.js';
 import { withConnectionState } from './ui/connection-state.js';
 import { normalizeRouteKey } from './ui/route-policy.js';
 import { closeDrawer } from './ui/components/drawer.js';
+import { initUiLanguage } from './ui/i18n.js';
 import { createDashboardClock } from './ui/clock.js';
 
 initUiPreferences();
@@ -17,6 +18,7 @@ const requestedPlatform = ['win32', 'darwin', 'linux', 'other'].includes(launchP
 document.documentElement.dataset.surface = surface;
 document.documentElement.dataset.windowChrome = requestedChrome;
 document.documentElement.dataset.platform = requestedPlatform;
+initUiLanguage(launchParams.get('language') ?? undefined);
 cleanLaunchQuery();
 
 let _routerReady = false;
@@ -144,6 +146,7 @@ function initDesktopBridge() {
 
 function applyDesktopStatus(status) {
   if (!status) return;
+  if (Object.hasOwn(status, 'languagePreference')) initUiLanguage(status.languagePreference);
   const projected = withConnectionState({ ...getStore(), desktopStatus: status }, _liveState);
   patchLocalConnection({ desktopStatus: status, connectionState: projected.connectionState });
   if (dashboardHidden()) {

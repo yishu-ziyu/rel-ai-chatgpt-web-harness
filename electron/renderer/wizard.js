@@ -1,5 +1,8 @@
+import { initUiLanguage, localizeStaticMarkup, subscribeUiLanguage, t } from './i18n.js';
+
 const $ = id => document.getElementById(id);
 const queryParams = new URLSearchParams(location.search);
+initUiLanguage(queryParams.get('language') || 'system');
 const recoveryMode = queryParams.get('recovery') === '1';
 const updateMode = queryParams.get('update') === '1';
 const updatePreviousVersion = (queryParams.get('previousVersion') || '').slice(0, 80);
@@ -56,7 +59,7 @@ async function openOpenAISetup(button) {
   try {
     await window.electronAPI.openOpenAISetup(destination);
   } catch (error) {
-    setError(`Could not open OpenAI setup: ${messageOf(error)}`);
+    setError(t`Could not open OpenAI setup: ${messageOf(error)}`);
   }
 }
 
@@ -68,34 +71,34 @@ async function connect() {
   setError();
   clearValidationErrors();
   if (!validTunnelId(tunnelId)) {
-    setFieldError('tunnelIdInput', 'tunnelIdError', 'Paste a valid Secure MCP Tunnel ID beginning with tunnel_.');
+    setFieldError('tunnelIdInput', 'tunnelIdError', t('Paste a valid Secure MCP Tunnel ID beginning with tunnel_.'));
     return;
   }
   if (!tunnelApiKey && !runtimeKeyConfigured) {
-    setFieldError('tunnelApiKeyInput', 'runtimeKeyError', 'Paste the API key you created for this tunnel in the same OpenAI organization.');
+    setFieldError('tunnelApiKeyInput', 'runtimeKeyError', t('Paste the API key you created for this tunnel in the same OpenAI organization.'));
     return;
   }
   if (tunnelApiKey && !validRuntimeKey(tunnelApiKey)) {
-    setFieldError('tunnelApiKeyInput', 'runtimeKeyError', 'Paste a valid runtime API key with no spaces.');
+    setFieldError('tunnelApiKeyInput', 'runtimeKeyError', t('Paste a valid runtime API key with no spaces.'));
     return;
   }
   if (!validPort(port)) {
-    setFieldError('portInput', 'portError', 'Enter a local connection port from 1024 to 65535.');
+    setFieldError('portInput', 'portError', t('Enter a local connection port from 1024 to 65535.'));
     return;
   }
 
   const button = $('connectBtn');
   button.disabled = true;
-  button.textContent = 'Connecting…';
+  button.textContent = t('Connecting…');
   try {
     const result = await window.electronAPI.wizardDone({ tunnelId, tunnelApiKey, port, restart: recoveryMode });
     if (!result?.ok || !result?.status?.serverRunning || result.status.tunnelStatus !== 'running') {
-      throw new Error(result?.status?.error || 'The ChatGPT connection did not become ready.');
+      throw new Error(result?.status?.error || t('The ChatGPT connection did not become ready.'));
     }
   } catch (error) {
     setError(messageOf(error));
     button.disabled = false;
-    button.textContent = button.dataset.updateLabel || 'Connect this computer';
+    button.textContent = button.dataset.updateLabel || t('Connect this computer');
   }
 }
 
@@ -105,7 +108,7 @@ async function loadExistingSettings() {
     if (config?.port) $('portInput').value = String(config.port);
     if (config?.tunnelId) $('tunnelIdInput').value = config.tunnelId;
     if (config?.tunnelApiKeyConfigured) {
-      $('tunnelApiKeyInput').placeholder = 'Stored securely. Leave blank to keep it.';
+      $('tunnelApiKeyInput').placeholder = t('Stored securely. Leave blank to keep it.');
       $('tunnelApiKeyInput').dataset.configured = '1';
       $('tunnelApiKeyInput').required = false;
     }
@@ -113,31 +116,34 @@ async function loadExistingSettings() {
 }
 
 function messageOf(error) {
-  return error instanceof Error ? error.message : String(error || 'Setup failed.');
+  return error instanceof Error ? error.message : String(error || t('Setup failed.'));
 }
 
 function applyUpdateMode() {
   if (!updateMode || recoveryMode) return;
-  document.title = 'Rel.AI MCP Update';
+  document.title = t('Rel.AI MCP Update');
   const banner = $('updateBanner');
   if (banner) banner.hidden = false;
   const detail = $('updateBannerDetail');
   if (detail && (updatePreviousVersion || updateCurrentVersion)) {
-    const from = updatePreviousVersion ? ` from v${updatePreviousVersion}` : '';
-    const to = updateCurrentVersion ? ` to v${updateCurrentVersion}` : '';
-    detail.textContent = `This looks like an update${from}${to} installed from a full download instead of the in-app updater. Your previous connection was not found on this launch, so reconnect once and you will be back where you left off.`;
+    const versions = updatePreviousVersion && updateCurrentVersion
+      ? t` from v${updatePreviousVersion} to v${updateCurrentVersion}`
+      : updatePreviousVersion
+        ? t` from v${updatePreviousVersion}`
+        : t` to v${updateCurrentVersion}`;
+    detail.textContent = t`This looks like an update${versions} installed from a full download instead of the in-app updater. Your previous connection was not found on this launch, so reconnect once and you will be back where you left off.`;
   }
   const eyebrow = $('wizardEyebrow');
-  if (eyebrow) eyebrow.textContent = 'Finish updating Rel.AI';
+  if (eyebrow) eyebrow.textContent = t('Finish updating Rel.AI');
   const title = $('wizardTitle');
-  if (title) title.textContent = 'Reconnect after the update';
+  if (title) title.textContent = t('Reconnect after the update');
   const subtitle = $('wizardSubtitle');
-  if (subtitle) subtitle.textContent = 'Rel.AI was updated from a full download. Confirm your Secure MCP Tunnel below to finish updating — nothing else needs to change.';
+  if (subtitle) subtitle.textContent = t('Rel.AI was updated from a full download. Confirm your Secure MCP Tunnel below to finish updating — nothing else needs to change.');
   const action = $('connectBtn');
-  if (action) action.textContent = 'Reconnect after update';
+  if (action) action.textContent = t('Reconnect after update');
   // Remember the pre-update button label so a failed reconnect restores the
   // update copy instead of the fresh-install copy.
-  if (action) action.dataset.updateLabel = 'Reconnect after update';
+  if (action) action.dataset.updateLabel = t('Reconnect after update');
 }
 
 $('connectBtn').addEventListener('click', connect);
@@ -146,7 +152,7 @@ $('runtimeKeyToggle').addEventListener('click', () => {
   const button = $('runtimeKeyToggle');
   const showing = input.type === 'text';
   input.type = showing ? 'password' : 'text';
-  button.textContent = showing ? 'Show' : 'Hide';
+  button.textContent = showing ? t('Show') : t('Hide');
   button.setAttribute('aria-pressed', String(!showing));
   input.focus();
 });
@@ -155,5 +161,18 @@ document.querySelectorAll('[data-open-openai]').forEach(button => button.addEven
 for (const [inputId, errorId] of [['tunnelIdInput', 'tunnelIdError'], ['tunnelApiKeyInput', 'runtimeKeyError'], ['portInput', 'portError']]) {
   $(inputId).addEventListener('input', () => clearFieldError(inputId, errorId));
 }
-applyUpdateMode();
+function renderLanguage() {
+  localizeStaticMarkup();
+  if (recoveryMode) document.title = t('Rel.AI MCP - Connection Recovery');
+  applyUpdateMode();
+  const toggle = $('runtimeKeyToggle');
+  toggle.textContent = $('tunnelApiKeyInput').type === 'text' ? t('Hide') : t('Show');
+  if ($('tunnelApiKeyInput').dataset.configured === '1') $('tunnelApiKeyInput').placeholder = t('Stored securely. Leave blank to keep it.');
+}
+
+subscribeUiLanguage(renderLanguage);
+window.electronAPI.onServerStatus?.(status => {
+  if (status?.languagePreference) initUiLanguage(status.languagePreference);
+});
+renderLanguage();
 void loadExistingSettings();

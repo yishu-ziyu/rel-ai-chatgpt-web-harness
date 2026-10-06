@@ -11,6 +11,7 @@ import { createDesktopLocalDataManager } from './desktop-local-data.js';
 import { createDesktopOsOperations } from './desktop-os-operations.js';
 import { createDesktopNotifications } from './desktop-notifications.js';
 import { createDesktopPowerIntegration } from './desktop-power.js';
+import { createLocalizedApplicationMenu } from './desktop-menu.js';
 import { createDesktopTray } from './desktop-tray.js';
 import { desktopStatusFailure, initialDesktopStatus, normalizeDesktopStatus } from './desktop-status.js';
 import { createDiagnosticFiles } from './diagnostic-files.js';
@@ -75,6 +76,7 @@ async function createDesktopHost(options = {}) {
     importResourceModule('src/processEnvironment.js')
   ]);
   const { ERROR_CODES } = errorContracts;
+  const { initUiLanguage, t } = await importResourceModule('src/ui/i18n.js');
   let processModulePromise = null;
   const terminateProcessTree = async (...args) => {
     processModulePromise ||= importResourceModule('src/process.js');
@@ -124,6 +126,7 @@ async function createDesktopHost(options = {}) {
     limits: WINDOW_SIZE_LIMITS.status,
     installProtocol: sessionProtocol => installLocalProtocol(sessionProtocol, rendererRoot),
     isQuitting: () => isQuitting,
+    getLanguagePreference: () => desktopLifecycle.getStatus().languagePreference,
     onReady: hydrateRecoveryWindow,
     onSecurityError: error => runtimeLogs.append(error.message, { level: 'warning', source: 'electron-security' })
   });
@@ -134,7 +137,8 @@ async function createDesktopHost(options = {}) {
     rendererRoot,
     runtimeLogs,
     isQuitting: () => isQuitting,
-    recoveryWindowManager
+    recoveryWindowManager,
+    getLanguagePreference: () => desktopLifecycle.getStatus().languagePreference
   });
   const pulseWindowManager = createPulseWindowManager({
     BrowserWindow,
@@ -142,6 +146,7 @@ async function createDesktopHost(options = {}) {
     iconPath,
     preloadPath,
     rendererUrl: localRendererUrl('pulse.html'),
+    getLanguagePreference: () => desktopLifecycle.getStatus().languagePreference,
     installProtocol: sessionProtocol => installLocalProtocol(sessionProtocol, rendererRoot),
     isQuitting: () => isQuitting,
     onSecurityError: error => runtimeLogs.append(error.message, { level: 'warning', source: 'electron-security' })
@@ -439,6 +444,9 @@ async function createDesktopHost(options = {}) {
       writeControllerRuntimeMarker(app),
       desktopLifecycle.start()
     ]);
+    initUiLanguage(lifecycleStatus.languagePreference, app.getLocale());
+    currentStatus = normalizeDesktopStatus({ ...currentStatus, languagePreference: lifecycleStatus.languagePreference });
+    Menu.setApplicationMenu(createLocalizedApplicationMenu({ Menu, appName: app.getName() }));
     desktopPower.setKeepAwakeEnabled(lifecycleStatus.keepAwake === true);
     pulseWindowManager.setEnabled(lifecycleStatus.pulseEnabled !== false);
     pulseWindowManager.setThemePreference(lifecycleStatus.themePreference);
@@ -536,6 +544,12 @@ async function createDesktopHost(options = {}) {
     }
     if (Object.hasOwn(patch, 'themePreference')) {
       pulseWindowManager.setThemePreference(result.status?.themePreference);
+    }
+    if (Object.hasOwn(patch, 'languagePreference')) {
+      initUiLanguage(result.status.languagePreference, app.getLocale());
+      Menu.setApplicationMenu(createLocalizedApplicationMenu({ Menu, appName: app.getName() }));
+      dashboardWindowManager.getWindow()?.setTitle(t('Rel.AI MCP Dashboard'));
+      setStatus({ languagePreference: result.status.languagePreference });
     }
     if (patch.autoDownloadUpdates === true && appUpdater?.getStatus()?.state === 'available') {
       void downloadApplicationUpdate();
@@ -743,7 +757,7 @@ async function createDesktopHost(options = {}) {
 
   function replaceCurrentStatus(next, statusOptions = {}) {
     const previous = currentStatus;
-    currentStatus = normalizeDesktopStatus(next);
+    currentStatus = normalizeDesktopStatus({ ...next, languagePreference: desktopLifecycle.getStatus().languagePreference });
     pulseWindowManager.update(currentStatus);
     if (!statusOptions.silent) desktopNotifications.handleDesktopStatusChange(previous, currentStatus);
     runtimeLogs.recordStatusTransition(previous, currentStatus);
@@ -790,6 +804,7 @@ async function createDesktopHost(options = {}) {
     const connection = await serviceRuntime.buildDashboardConnection();
     const url = new URL(connection.url);
     url.searchParams.set('theme', desktopLifecycle.getStatus().themePreference || 'system');
+    url.searchParams.set('language', desktopLifecycle.getStatus().languagePreference || 'system');
     return { ...connection, url: url.href };
   }
 

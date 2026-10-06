@@ -1,5 +1,8 @@
 import { localWindowWebPreferences, secureLocalWindow } from './window-security.js';
 import { projectPulseStatus } from './pulse-state.js';
+import { importResourceModule } from './resource-path.js';
+
+const { t } = await importResourceModule('src/ui/i18n.js');
 
 const PULSE_WIDTH = 286;
 const PULSE_HEIGHT = 48;
@@ -15,6 +18,7 @@ function createPulseWindowManager(options = {}) {
     iconPath = '',
     preloadPath,
     rendererUrl,
+    getLanguagePreference = () => 'system',
     installProtocol = () => {},
     platform = process.platform,
     env = process.env,
@@ -93,7 +97,7 @@ function createPulseWindowManager(options = {}) {
   }
 
   function pulseModel() {
-    return { ...currentModel, themePreference, expanded };
+    return { ...currentModel, themePreference, languagePreference: getLanguagePreference(), expanded };
   }
 
   function sync() {
@@ -156,6 +160,8 @@ function createPulseWindowManager(options = {}) {
   function getOrCreateWindow() {
     if (window && !window.isDestroyed()) return window;
     const bounds = pulseBounds(screen, { expanded: false });
+    const url = new URL(rendererUrl);
+    url.searchParams.set('language', getLanguagePreference());
     const createdWindow = new BrowserWindow({
       ...bounds,
       width: PULSE_WIDTH,
@@ -170,7 +176,7 @@ function createPulseWindowManager(options = {}) {
       skipTaskbar: true,
       alwaysOnTop: !wayland,
       autoHideMenuBar: true,
-      title: 'Rel.AI Pulse',
+      title: t('Rel.AI Pulse'),
       icon: iconPath || undefined,
       transparent: true,
       hasShadow: false,
@@ -179,8 +185,8 @@ function createPulseWindowManager(options = {}) {
     });
     window = createdWindow;
     installProtocol(createdWindow.webContents.session.protocol);
-    secureLocalWindow(createdWindow, { allowedUrl: rendererUrl, onError: onSecurityError });
-    void Promise.resolve(createdWindow.loadURL(rendererUrl)).catch(error => {
+    secureLocalWindow(createdWindow, { allowedUrl: url.href, onError: onSecurityError });
+    void Promise.resolve(createdWindow.loadURL(url.href)).catch(error => {
       onSecurityError(new Error(`Pulse renderer failed to load: ${error instanceof Error ? error.message : String(error)}`));
     });
     createdWindow.webContents.on('did-finish-load', () => {

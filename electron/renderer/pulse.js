@@ -1,3 +1,7 @@
+import { initUiLanguage, localizeStaticMarkup, subscribeUiLanguage, t } from './i18n.js';
+
+initUiLanguage(new URLSearchParams(location.search).get('language') || 'system');
+localizeStaticMarkup();
 let currentModel = { route: '#home' };
 let expanded = false;
 let morphAnimation = null;
@@ -57,28 +61,28 @@ function announceStatus(message) {
 }
 
 function stateLabel(model) {
-  if (model.actionRequired) return 'Action required';
-  if (model.tone === 'working') return 'Working';
-  if (model.tone === 'waiting') return 'Open';
-  if (model.tone === 'attention') return 'Needs attention';
-  return 'Rel.AI';
+  if (model.actionRequired) return t('Action required');
+  if (model.tone === 'working') return t('Working');
+  if (model.tone === 'waiting') return t('Open');
+  if (model.tone === 'attention') return t('Needs attention');
+  return t('Rel.AI');
 }
 
 function formatElapsed(startedAt, now = Date.now()) {
   const start = Number(startedAt);
   if (!Number.isFinite(start) || start <= 0) return '';
   const seconds = Math.max(0, Math.floor((now - start) / 1000));
-  if (seconds < 5) return 'just now';
-  if (seconds < 60) return `${seconds}s`;
+  if (seconds < 5) return t('just now');
+  if (seconds < 60) return t`${seconds}s`;
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m`;
+  if (minutes < 60) return t`${minutes}m`;
   const hours = Math.floor(minutes / 60);
   if (hours < 24) {
     const rest = minutes % 60;
-    return rest ? `${hours}h ${rest}m` : `${hours}h`;
+    return rest ? t`${hours}h ${rest}m` : t`${hours}h`;
   }
   const days = Math.floor(hours / 24);
-  return `${days}d`;
+  return t`${days}d`;
 }
 
 function tickElapsed() {
@@ -117,6 +121,7 @@ function updatePulse(model = {}) {
     progressLabel: '',
     ...(model || {})
   };
+  if (model?.languagePreference) initUiLanguage(model.languagePreference);
   if (typeof window.requestAnimationFrame === 'function') {
     if (renderScheduled) return;
     renderScheduled = true;
@@ -135,7 +140,7 @@ function renderPulse() {
   else delete document.documentElement.dataset.theme;
 
   const label = stateLabel(currentModel);
-  const title = currentModel.title || 'Rel.AI';
+  const title = currentModel.title || t('Rel.AI');
   const contextTitle = String(currentModel.contextTitle || '').trim();
   const detail = String(currentModel.detail || '').trim();
   const activityLine = String(currentModel.activityLine || '').trim();
@@ -155,7 +160,7 @@ function renderPulse() {
   setText(stateEl, label);
   setText(expandedStateEl, label);
   taskCountElement.hidden = taskCount < 1;
-  taskCountElement.textContent = taskCount === 1 ? '1 task' : `${taskCount} tasks`;
+  taskCountElement.textContent = taskCount === 1 ? t('1 task') : t`${taskCount} tasks`;
   setTextWithTitle(compactTitleEl, title);
   setTextWithTitle(titleEl, title);
 
@@ -164,7 +169,7 @@ function renderPulse() {
     setTextWithTitle(activityText, activityLine);
   }
 
-  const summary = contextTitle && contextTitle !== title ? contextTitle : (detail || 'Local activity is in progress.');
+  const summary = contextTitle && contextTitle !== title ? contextTitle : (detail || t('Local activity is in progress.'));
   const hideSummaryForDensity = multiTask && items.length > 0;
   if (summaryEl) {
     summaryEl.hidden = hideSummaryForDensity && !hasProgress ? true : false;
@@ -185,20 +190,20 @@ function renderPulse() {
       lastProgressBucket = bucket;
       if (progressFill.style.width !== `${percent}%`) progressFill.style.width = `${percent}%`;
       if (compactProgressFill && compactProgressFill.style.width !== `${percent}%`) compactProgressFill.style.width = `${percent}%`;
-      setText(progressLabelEl, currentModel.progressLabel || 'Progress');
       setText(progressValueEl, `${Math.round(percent)}%`);
       progress.setAttribute('aria-valuenow', String(Math.round(percent)));
-      progress.setAttribute('aria-label', currentModel.progressLabel || 'Task progress');
     }
+    setText(progressLabelEl, currentModel.progressLabel || t('Progress'));
+    progress.setAttribute('aria-label', currentModel.progressLabel || t('Task progress'));
   } else if (lastProgressBucket !== -1) {
     lastProgressBucket = -1;
     if (progressFill.style.width !== '0%') progressFill.style.width = '0%';
     if (compactProgressFill && compactProgressFill.style.width !== '0%') compactProgressFill.style.width = '0%';
   }
 
-  const openText = currentModel.actionRequired ? 'Review in Rel.AI' : 'Open in Rel.AI';
+  const openText = currentModel.actionRequired ? t('Review in Rel.AI') : t('Open in Rel.AI');
   setText(openLabelEl, openText);
-  const openLabel = `${currentModel.actionRequired ? 'Review' : 'Open'} ${title}`;
+  const openLabel = currentModel.actionRequired ? t`Review ${title}` : t`Open ${title}`;
   if (openButton.getAttribute('aria-label') !== openLabel) openButton.setAttribute('aria-label', openLabel);
   tickElapsed();
   announceStatus(`${label}. ${title}. ${summary}`);
@@ -213,18 +218,19 @@ function renderTaskList(items, taskCount, workspacesLabel, taskNames) {
     return;
   }
   const hiddenTaskCount = Math.max(0, taskCount - items.length);
+  const workspaceSuffix = workspacesLabel ? ` · ${workspacesLabel}` : '';
   const countLabel = hiddenTaskCount > 0
-    ? `${taskCount} tasks · +${hiddenTaskCount} more`
+    ? t`${taskCount} tasks · +${hiddenTaskCount} more`
     : taskCount > 1
-      ? `${taskCount} tasks${workspacesLabel ? ` · ${workspacesLabel}` : ''}`
+      ? t`${taskCount} tasks${workspaceSuffix}`
       : (workspacesLabel || '');
   setText(tasksCount, countLabel);
 
   if (taskList.childElementCount !== items.length) taskList.textContent = '';
   items.forEach((item, index) => {
-    const title = String(item.title || '').trim() || 'Untitled task';
+    const title = String(item.title || '').trim() || t('Untitled task');
     const meta = [item.workspace ? String(item.workspace) : '', item.statusLabel && !item.active ? String(item.statusLabel) : ''].filter(Boolean).join(' · ');
-    const pill = item.active ? 'Running' : (item.statusLabel || 'Queued');
+    const pill = item.active ? t('Running') : (item.statusLabel || t('Queued'));
     let row = taskList.children[index];
     if (!row) {
       row = document.createElement('li');
@@ -265,7 +271,7 @@ function renderTaskList(items, taskCount, workspacesLabel, taskNames) {
   while (taskList.childElementCount > items.length) taskList.lastChild?.remove();
   // Keep the legacy joined-names format for the screen-reader label.
   const joinedNames = taskNames.join(' · ');
-  tasksBlock.setAttribute('aria-label', joinedNames ? `Tasks: ${joinedNames}` : `Tasks: ${items.map(item => item.title).join(' · ')}`);
+  tasksBlock.setAttribute('aria-label', joinedNames ? t`Tasks: ${joinedNames}` : t`Tasks: ${items.map(item => item.title).join(' · ')}`);
 }
 
 function setExpanded(next) {
@@ -398,13 +404,13 @@ function resetExpandedFromHost() {
 
 function applyExpandedAccessibility(value) {
   toggle.setAttribute('aria-expanded', String(value));
-  toggle.setAttribute('aria-label', value ? 'Hide activity details' : 'Show activity details');
+  toggle.setAttribute('aria-label', value ? t('Hide activity details') : t('Show activity details'));
   island.setAttribute('aria-hidden', String(!value));
   if (value) island.removeAttribute('inert');
   else island.setAttribute('inert', '');
   openButton.tabIndex = value ? 0 : -1;
   compactCopy?.setAttribute('aria-expanded', String(value));
-  compactCopy?.setAttribute('aria-label', value ? 'Hide activity details' : 'Show activity details');
+  compactCopy?.setAttribute('aria-label', value ? t('Hide activity details') : t('Show activity details'));
 }
 
 function applyExpandedLayout(value) {
@@ -442,4 +448,9 @@ openButton.addEventListener('click', () => {
   Promise.resolve(window.relaiPulse?.openDashboard?.()).catch(() => {});
 });
 window.setInterval(tickElapsed, 1000);
+subscribeUiLanguage(() => {
+  localizeStaticMarkup();
+  renderPulse();
+  applyExpandedAccessibility(expanded);
+});
 window.relaiPulse?.onState?.(updatePulse);

@@ -7,6 +7,9 @@ import { normalizeRouteHash, planDashboardNavigation, safeOrigin, safeUrl, valid
 import { DASHBOARD_WINDOW_LIMITS, dashboardWindowState, restoreDashboardBounds } from './dashboard-window-bounds.js';
 import { localWindowWebPreferences } from './window-security.js';
 import { STARTUP_BACKGROUND_COLOR } from './startup-background.js';
+import { importResourceModule } from './resource-path.js';
+
+const { t } = await importResourceModule('src/ui/i18n.js');
 
 const dashboardPreloadPath = fileURLToPath(new URL('./preload.cjs', import.meta.url));
 import { dashboardWindowChrome, dashboardWindowChromeState } from "./window-chrome.js";
@@ -96,7 +99,7 @@ function createDashboardWindowManager(deps) {
       minHeight: Math.min(DASHBOARD_WINDOW_LIMITS.minHeight, bounds.height),
       show: false,
       autoHideMenuBar: true,
-      title: 'Rel.AI MCP Dashboard',
+      title: t('Rel.AI MCP Dashboard'),
       icon: iconPath || undefined,
       backgroundColor: STARTUP_BACKGROUND_COLOR,
       webPreferences: {
@@ -179,7 +182,7 @@ function createDashboardWindowManager(deps) {
         parent.focus();
       }
       const result = await dialog.showOpenDialog(parent, {
-        title: 'Select workspace folder',
+        title: t('Select workspace folder'),
         properties: ['openDirectory']
       });
       return result && !result.canceled && result.filePaths?.[0] ? result.filePaths[0] : null;

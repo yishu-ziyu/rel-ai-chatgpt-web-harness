@@ -7,6 +7,8 @@ import { toast } from '../../components/toast.js';
 import { connectionLayerViews, connectionStateFor, connectionSummary, hasObservedMcpConnection } from '../../connection-state.js';
 import { DEVELOPER_FEATURES, readDeveloperFeatureEnabled, readDeveloperOptionsUnlocked, unlockDeveloperOptions, writeDeveloperFeatureEnabled } from '../../developer-mode.js';
 import { getUiPreferences, setThemePreference } from '../../preferences.js';
+import { getLanguagePreference, setLanguagePreference, t } from '../../i18n.js';
+import { useUiLanguage } from '../../i18n-react.js';
 import { currentRoutePath } from '../../router.js';
 import { chatGptFirstPrompt, chatGptGuideSteps, CHATGPT_CONNECTOR_CREATE_URL, RELAI_CONNECTOR_ICON_FILENAME, downloadRelaiConnectorIcon } from './connection-guidance.js';
 import { restartConnection } from './connection-recovery.js';
@@ -39,6 +41,7 @@ export function createSettingsRoute(useDashboardStore) {
 }
 
 export function SettingsView({ data = {}, subPage = '' }) {
+  useUiLanguage();
   const path = subPage ? `settings/${subPage}` : currentRoutePath();
   const page = path === 'settings' ? 'preferences' : path.split('/')[1] || 'preferences';
   const content = {
@@ -58,14 +61,14 @@ export function SettingsView({ data = {}, subPage = '' }) {
 
 function SettingsHeader({ title, description }) {
   return h('div', { className: 'settings-header' },
-    h('h2', null, title),
-    description ? h('p', null, description) : null
+    h('h2', null, t(title)),
+    description ? h('p', null, t(description)) : null
   );
 }
 
 function Card({ title, className = '', children }) {
   return h('section', { className: ['card', className].filter(Boolean).join(' ') },
-    h('div', { className: 'card-head' }, h('h3', null, title)),
+    h('div', { className: 'card-head' }, h('h3', null, t(title))),
     h('div', { className: 'card-body settings-panel-body' }, children)
   );
 }
@@ -83,7 +86,7 @@ function Toggle({ checked, disabled = false, busy = false, onChange, enabledLabe
       'aria-describedby': describedBy,
       onChange: event => onChange?.(event.currentTarget.checked)
     }),
-    h('span', { className: 'toggle-label' }, checked ? enabledLabel : disabledLabel)
+    h('span', { className: 'toggle-label' }, t(checked ? enabledLabel : disabledLabel))
   );
 }
 
@@ -93,8 +96,8 @@ function ToggleRow({ label, help = '', checked, disabled = false, busy = false, 
   const helpId = `${labelId}Help`;
   return h('div', { className: 'setting-row settings-toggle-row' },
     h('div', { className: 'setting-row-copy' },
-      h('strong', { id: labelId }, label),
-      help ? h('span', { id: helpId }, help) : null
+      h('strong', { id: labelId }, t(label)),
+      help ? h('span', { id: helpId }, t(help)) : null
     ),
     h(Toggle, {
       checked, disabled, busy, onChange, enabledLabel, disabledLabel,
@@ -106,15 +109,15 @@ function ToggleRow({ label, help = '', checked, disabled = false, busy = false, 
 
 function SettingsField({ label, help = '', error = '', children, inputId }) {
   return h('div', { className: 'settings-field' },
-    h('label', { htmlFor: inputId }, label),
+    h('label', { htmlFor: inputId }, t(label)),
     children,
-    help ? h('p', { className: 'settings-help', id: `${inputId}Help` }, help) : null,
-    error ? h('div', { className: 'connection-key-error', id: `${inputId}Error`, role: 'alert' }, error) : null
+    help ? h('p', { className: 'settings-help', id: `${inputId}Help` }, t(help)) : null,
+    error ? h('div', { className: 'connection-key-error', id: `${inputId}Error`, role: 'alert' }, t(error)) : null
   );
 }
 
 function StatusPill({ label, tone = '' }) {
-  return h('span', { className: `status-pill ${tone}`.trim() }, label);
+  return h('span', { className: `status-pill ${tone}`.trim() }, t(label));
 }
 
 function ConnectionPage({ data }) {
@@ -137,11 +140,11 @@ function ConnectionPage({ data }) {
   const retry = async () => {
     const result = await restartConnection();
     if (!result?.ok) {
-      toast(result?.error || 'The connection could not be retried.', { variant: 'error' });
+      toast(result?.error || t('The connection could not be retried.'), { variant: 'error' });
       openSettings({ focus: true });
       return;
     }
-    toast('Connection retry started. Rel.AI is checking the Secure MCP Tunnel.', { variant: 'success' });
+    toast(t('Connection retry started. Rel.AI is checking the Secure MCP Tunnel.'), { variant: 'success' });
   };
   const refreshStatus = async () => {
     try {
@@ -149,21 +152,21 @@ function ConnectionPage({ data }) {
       if (status) window.dispatchEvent(new CustomEvent('relai:desktop-status-refresh', { detail: status }));
     } catch {}
     window.dispatchEvent(new CustomEvent('relai:dashboard-refresh'));
-    toast('Refreshing connection status…', { variant: 'info' });
+    toast(t('Refreshing connection status…'), { variant: 'info' });
   };
 
   return h('div', { className: 'section connection-page', 'data-connection-react': '' },
     h('section', { className: `card connection-summary-card ${summary.tone}` },
-      h('div', { className: 'card-head' }, h('h3', null, 'ChatGPT connection'), h(StatusPill, { label: summary.label, tone: summary.tone })),
+      h('div', { className: 'card-head' }, h('h3', null, t('ChatGPT connection')), h(StatusPill, { label: summary.label, tone: summary.tone })),
       h('div', { className: 'card-body connection-status-body' },
-        h('div', { className: 'connection-status-copy' }, h('h2', null, summary.title), h('p', null, summary.message)),
+        h('div', { className: 'connection-status-copy' }, h('h2', null, t(summary.title)), h('p', null, t(summary.message))),
         action.kind !== 'none' ? h('div', { className: 'connection-primary-action' }, connectionActionElement(action, { openSetup, openSettings, retry })) : null
       )
     ),
     h('div', { className: 'connection-support-row' },
-      h('button', { className: 'secondary compact-button', type: 'button', onClick: () => void refreshStatus() }, 'Refresh status'),
-      ['restart', 'settings'].includes(action.kind) ? h('button', { className: 'secondary compact-button', type: 'button', onClick: () => openSettings({ focus: true }) }, 'Review settings') : null,
-      action.href === '#diagnostics' || action.kind === 'none' ? null : h('a', { className: 'buttonlike secondary compact-button', href: '#diagnostics' }, 'Troubleshooting')
+      h('button', { className: 'secondary compact-button', type: 'button', onClick: () => void refreshStatus() }, t('Refresh status')),
+      ['restart', 'settings'].includes(action.kind) ? h('button', { className: 'secondary compact-button', type: 'button', onClick: () => openSettings({ focus: true }) }, t('Review settings')) : null,
+      action.href === '#diagnostics' || action.kind === 'none' ? null : h('a', { className: 'buttonlike secondary compact-button', href: '#diagnostics' }, t('Troubleshooting'))
     ),
     h(ConnectionLayers, { state, summary }),
     guideMode ? h(ConnectionGuide, { mode: guideMode, tunnelId, workspaceAlias }) : null,
@@ -178,43 +181,43 @@ function connectionPrimaryAction(state = {}) {
   const local = String(state.localService?.status || '');
   const endpoint = String(state.publicEndpoint?.status || '');
   const errorCode = String(state.error?.code || '');
-  if (local === 'failed' || local === 'stopped') return { kind: 'route', href: '#diagnostics', label: 'Troubleshoot' };
-  if (endpoint === 'disabled') return { kind: 'control', label: 'Set up connection' };
+  if (local === 'failed' || local === 'stopped') return { kind: 'route', href: '#diagnostics', label: t('Troubleshoot') };
+  if (endpoint === 'disabled') return { kind: 'control', label: t('Set up connection') };
   if (endpoint === 'unavailable') {
-    if (errorCode === 'tunnel_authentication_failed') return { kind: 'settings', label: 'Replace runtime key' };
-    if (errorCode === 'tunnel_access_denied') return { kind: 'settings', label: 'Review key permissions' };
-    if (errorCode === 'tunnel_not_found') return { kind: 'settings', label: 'Review Tunnel ID' };
-    return { kind: 'restart', label: 'Retry now' };
+    if (errorCode === 'tunnel_authentication_failed') return { kind: 'settings', label: t('Replace runtime key') };
+    if (errorCode === 'tunnel_access_denied') return { kind: 'settings', label: t('Review key permissions') };
+    if (errorCode === 'tunnel_not_found') return { kind: 'settings', label: t('Review Tunnel ID') };
+    return { kind: 'restart', label: t('Retry now') };
   }
-  if (endpoint === 'degraded') return { kind: 'restart', label: 'Retry now' };
+  if (endpoint === 'degraded') return { kind: 'restart', label: t('Retry now') };
   if (summary.tone === 'working') return { kind: 'none' };
-  if (summary.tone === 'bad' || summary.tone === 'warn') return { kind: 'route', href: '#diagnostics', label: 'Troubleshoot' };
-  return { kind: 'route', href: '#tasks', label: 'Tasks' };
+  if (summary.tone === 'bad' || summary.tone === 'warn') return { kind: 'route', href: '#diagnostics', label: t('Troubleshoot') };
+  return { kind: 'route', href: '#tasks', label: t('Tasks') };
 }
 
 function connectionActionElement(action, handlers) {
-  if (action.kind === 'control') return h('button', { className: 'primary', type: 'button', onClick: handlers.openSetup }, action.label);
-  if (action.kind === 'settings') return h('button', { className: 'primary', type: 'button', onClick: () => handlers.openSettings({ focus: true }) }, action.label);
+  if (action.kind === 'control') return h('button', { className: 'primary', type: 'button', onClick: handlers.openSetup }, t(action.label));
+  if (action.kind === 'settings') return h('button', { className: 'primary', type: 'button', onClick: () => handlers.openSettings({ focus: true }) }, t(action.label));
   if (action.kind === 'restart') {
     return typeof window.relaiDesktop?.restartConnection === 'function'
-      ? h('button', { className: 'primary', type: 'button', onClick: () => void handlers.retry() }, action.label)
-      : h('button', { className: 'primary', type: 'button', onClick: () => handlers.openSettings({ focus: true }) }, 'Review connection settings');
+      ? h('button', { className: 'primary', type: 'button', onClick: () => void handlers.retry() }, t(action.label))
+      : h('button', { className: 'primary', type: 'button', onClick: () => handlers.openSettings({ focus: true }) }, t('Review connection settings'));
   }
-  return h('a', { className: 'buttonlike primary', href: action.href }, action.label);
+  return h('a', { className: 'buttonlike primary', href: action.href }, t(action.label));
 }
 
 function ConnectionLayers({ state, summary }) {
   const [open, setOpen] = useState(summary.tone === 'bad' || summary.tone === 'warn');
   return h('details', { className: 'card connector-details connection-layer-disclosure', open, onToggle: event => setOpen(event.currentTarget.open) },
     h('summary', { className: 'connector-details-summary' },
-      h('span', null, h('strong', null, 'Connection check'), h('small', null, 'This computer, Secure MCP Tunnel, and ChatGPT'))
+      h('span', null, h('strong', null, t('Connection check')), h('small', null, t('This computer, Secure MCP Tunnel, and ChatGPT')))
     ),
     h('div', { className: 'connection-path' }, connectionLayerViews(state).map(layer => h('article', { className: `connection-path-step ${layer.tone}`, key: layer.key },
       h('div', { className: 'connection-layer-card-head' },
         h('span', { className: 'connection-layer-dot', 'aria-hidden': 'true' }),
-        h('div', null, h('h4', null, layer.title), h('span', { className: `connection-layer-state ${layer.tone}` }, layer.label))
+        h('div', null, h('h4', null, t(layer.title)), h('span', { className: `connection-layer-state ${layer.tone}` }, t(layer.label)))
       ),
-      h('p', null, layer.description)
+      h('p', null, t(layer.description))
     )))
   );
 }
@@ -238,28 +241,28 @@ function ConnectionGuide({ mode, tunnelId, workspaceAlias }) {
   };
   return h('div', { className: 'connection-guide-region' },
     h('section', { className: 'card connection-guide-card' },
-      h('div', { className: 'card-head' }, h('h3', null, title), h('span', { className: 'section-action' }, 'Connection setup')),
+      h('div', { className: 'card-head' }, h('h3', null, t(title)), h('span', { className: 'section-action' }, t('Connection setup'))),
       h('div', { className: 'card-body' },
         h('div', { className: 'chatgpt-setup-guide compact' },
           h('div', { className: 'chatgpt-guide-heading' },
-            h('strong', null, mode === 'reconnect' ? 'Reconnect ChatGPT' : 'Finish ChatGPT setup'),
-            h('span', null, 'Use Tunnel + No authentication. Rel.AI keeps the local connection private.')
+            h('strong', null, t(mode === 'reconnect' ? 'Reconnect ChatGPT' : 'Finish ChatGPT setup')),
+            h('span', null, t('Use Tunnel + No authentication. Rel.AI keeps the local connection private.'))
           ),
-          mode === 'create' ? h('section', { className: 'chatgpt-connector-handoff', 'aria-label': 'ChatGPT connector setup' },
+          mode === 'create' ? h('section', { className: 'chatgpt-connector-handoff', 'aria-label': t('ChatGPT connector setup') },
             h('dl', { className: 'chatgpt-connector-values' },
-              h('dt', null, 'Name'), h('dd', null, 'Rel.AI MCP'),
-              h('dt', null, 'Connection'), h('dd', null, 'Tunnel'),
-              h('dt', null, 'Tunnel'), h('dd', { className: 'mono' }, tunnelId || 'Select this computer’s tunnel'),
-              h('dt', null, 'Authentication'), h('dd', null, 'No authentication')
+              h('dt', null, t('Name')), h('dd', null, 'Rel.AI MCP'),
+              h('dt', null, t('Connection')), h('dd', null, t('Tunnel')),
+              h('dt', null, t('Tunnel')), h('dd', { className: 'mono' }, tunnelId || t('Select this computer’s tunnel')),
+              h('dt', null, t('Authentication')), h('dd', null, t('No authentication'))
             ),
-            h('div', { className: 'chatgpt-connector-actions', role: 'group', 'aria-label': 'ChatGPT connector setup actions' },
-              h('button', { className: 'primary', type: 'button', onClick: () => window.open(CHATGPT_CONNECTOR_CREATE_URL, '_blank', 'noopener,noreferrer') }, 'ChatGPT setup'),
-              h('button', { className: 'secondary', type: 'button', onClick: saveIcon }, iconSaved ? `Optional icon saved · ${RELAI_CONNECTOR_ICON_FILENAME}` : h(React.Fragment, null, 'Save optional Rel.AI icon ', h('span', null, 'PNG · under 10 KB')))
+            h('div', { className: 'chatgpt-connector-actions', role: 'group', 'aria-label': t('ChatGPT connector setup actions') },
+              h('button', { className: 'primary', type: 'button', onClick: () => window.open(CHATGPT_CONNECTOR_CREATE_URL, '_blank', 'noopener,noreferrer') }, t('ChatGPT setup')),
+              h('button', { className: 'secondary', type: 'button', onClick: saveIcon }, iconSaved ? t`Optional icon saved · ${RELAI_CONNECTOR_ICON_FILENAME}` : h(React.Fragment, null, t('Save optional Rel.AI icon '), h('span', null, t('PNG · under 10 KB'))))
             ),
-            h('p', { className: 'chatgpt-connector-note' }, iconSaved ? 'The icon is optional. Open ChatGPT setup when you are ready.' : 'Open ChatGPT now. You can add the Rel.AI icon after the connector works.')
+            h('p', { className: 'chatgpt-connector-note' }, t(iconSaved ? 'The icon is optional. Open ChatGPT setup when you are ready.' : 'Open ChatGPT now. You can add the Rel.AI icon after the connector works.'))
           ) : null,
           h('ol', null, steps.map((step, index) => h('li', { key: index }, step))),
-          h('div', { className: 'chatgpt-first-prompt' }, h('span', null, 'First test request'), h('code', null, chatGptFirstPrompt(workspaceAlias)))
+          h('div', { className: 'chatgpt-first-prompt' }, h('span', null, t('First test request')), h('code', null, chatGptFirstPrompt(workspaceAlias)))
         )
       )
     )
@@ -307,9 +310,9 @@ function DesktopConnectionSettings({ expanded = false }) {
     return () => window.removeEventListener('relai:connection-open-settings', handler);
   }, []);
 
-  if (!desktop?.getSettings || !desktop?.saveSettings) return h('div', { className: 'empty' }, 'Connection settings are available inside the installed Rel.AI desktop app.');
-  if (!form) return h('div', { className: 'settings-loading', role: 'status' }, 'Loading connection settings…');
-  if (form.loadError) return h('div', { className: 'empty' }, `Connection settings could not be loaded: ${form.loadError}`);
+  if (!desktop?.getSettings || !desktop?.saveSettings) return h('div', { className: 'empty' }, t('Connection settings are available inside the installed Rel.AI desktop app.'));
+  if (!form) return h('div', { className: 'settings-loading', role: 'status' }, t('Loading connection settings…'));
+  if (form.loadError) return h('div', { className: 'empty' }, t`Connection settings could not be loaded: ${form.loadError}`);
 
   const dirty = connectionSnapshot(form) !== saved;
   const credentialError = tunnelCredentialError(form);
@@ -343,7 +346,7 @@ function DesktopConnectionSettings({ expanded = false }) {
       if (result?.ok === false) {
         setOpen(true);
         setSaveState('idle');
-        toast(result.error || 'Connection settings were saved, but the Secure MCP Tunnel could not connect.', { variant: 'error' });
+        toast(result.error || t('Connection settings were saved, but the Secure MCP Tunnel could not connect.'), { variant: 'error' });
         return;
       }
       setForm(current => ({ ...current, tunnelErrorCode: '', tunnelError: '' }));
@@ -363,10 +366,10 @@ function DesktopConnectionSettings({ expanded = false }) {
     onToggle: event => setOpen(event.currentTarget.open),
     'data-unsaved-changes': dirty ? 'true' : 'false'
   },
-    h('summary', { className: 'connector-details-summary' }, h('span', null, h('strong', null, 'Connection settings'), h('small', null, 'Secure tunnel credentials and local port'))),
+    h('summary', { className: 'connector-details-summary' }, h('span', null, h('strong', null, t('Connection settings')), h('small', null, t('Secure tunnel credentials and local port')))),
     h('div', { className: 'card-body settings-panel-body' },
-      h('p', { className: 'muted' }, 'Use these settings when connecting this computer for the first time or fixing a connection problem.'),
-      h(SettingsField, { label: 'Tunnel ID', help: 'The OpenAI Secure MCP Tunnel ID for this computer.', error: validation?.field === 'tunnelId' ? validation.message : '', inputId: 'tunnelId' },
+      h('p', { className: 'muted' }, t('Use these settings when connecting this computer for the first time or fixing a connection problem.')),
+      h(SettingsField, { label: t('Tunnel ID'), help: t('The OpenAI Secure MCP Tunnel ID for this computer.'), error: validation?.field === 'tunnelId' ? validation.message : '', inputId: 'tunnelId' },
         h('input', {
           id: 'tunnelId', type: 'text', value: form.tunnelId, autoComplete: 'off', spellCheck: false,
           ref: firstInputRef, 'data-connection-field': 'tunnelId', 'aria-invalid': validation?.field === 'tunnelId' ? 'true' : undefined,
@@ -374,27 +377,27 @@ function DesktopConnectionSettings({ expanded = false }) {
         })
       ),
       h(SettingsField, {
-        label: 'Runtime API key',
-        help: form.tunnelApiKeyConfigured ? 'The saved key is encrypted on this computer. Rel.AI does not show it again.' : 'Create a runtime API key for this Secure MCP Tunnel in OpenAI Platform.',
+        label: t('Runtime API key'),
+        help: t(form.tunnelApiKeyConfigured ? 'The saved key is encrypted on this computer. Rel.AI does not show it again.' : 'Create a runtime API key for this Secure MCP Tunnel in OpenAI Platform.'),
         error: validation?.field === 'tunnelApiKey' ? validation.message : '', inputId: 'tunnelApiKey'
       },
         h('div', { className: 'password-field' },
           h('input', {
             id: 'tunnelApiKey', type: showSecret ? 'text' : 'password', value: form.tunnelApiKey,
-            placeholder: form.tunnelApiKeyConfigured ? 'Stored securely. Enter a new key only to replace it.' : 'Paste runtime API key',
+            placeholder: t(form.tunnelApiKeyConfigured ? 'Stored securely. Enter a new key only to replace it.' : 'Paste runtime API key'),
             autoComplete: 'off', spellCheck: false, 'data-connection-field': 'tunnelApiKey',
             'aria-invalid': validation?.field === 'tunnelApiKey' ? 'true' : undefined, 'aria-describedby': describedBy('tunnelApiKey'),
             onChange: event => update({ tunnelApiKey: event.currentTarget.value.trim() })
           }),
-          h('button', { className: 'secondary compact-button password-toggle', type: 'button', onClick: () => setShowSecret(value => !value) }, showSecret ? 'Hide' : 'Show')
+          h('button', { className: 'secondary compact-button password-toggle', type: 'button', onClick: () => setShowSecret(value => !value) }, t(showSecret ? 'Hide' : 'Show'))
         )
       ),
       credentialError ? h('div', { className: 'connection-key-error', role: 'alert' }, credentialError) : null,
       h(AccountWorkspaceSwitch),
       h('details', { className: 'settings-advanced connection-advanced-settings' },
-        h('summary', null, 'Advanced local settings'),
+        h('summary', null, t('Advanced local settings')),
         h('div', { className: 'settings-panel-body' },
-          h(SettingsField, { label: 'Local connection port', help: 'Change this only when port 3333 conflicts with another local application.', error: validation?.field === 'port' ? validation.message : '', inputId: 'port' },
+          h(SettingsField, { label: t('Local connection port'), help: t('Change this only when port 3333 conflicts with another local application.'), error: validation?.field === 'port' ? validation.message : '', inputId: 'port' },
             h('input', {
               id: 'port', className: 'settings-number-control', type: 'number', min: '1024', max: '65535', step: '1', value: form.port,
               'data-connection-field': 'port', 'aria-invalid': validation?.field === 'port' ? 'true' : undefined,
@@ -404,9 +407,9 @@ function DesktopConnectionSettings({ expanded = false }) {
         )
       ),
       h('div', { className: 'connection-actions' },
-        h('div', { className: 'muted' }, 'Changing the tunnel reconnects the tunnel only. Changing the local port restarts the full Rel.AI connection.'),
+        h('div', { className: 'muted' }, t('Changing the tunnel reconnects the tunnel only. Changing the local port restarts the full Rel.AI connection.')),
         h('button', { className: 'primary', type: 'button', disabled: saveState === 'saving', onClick: () => void save() },
-          saveState === 'saving' ? 'Saving and restarting…' : saveState === 'saved' ? 'Connection settings saved' : saveState === 'error' ? 'Try again' : 'Save connection settings')
+          t(saveState === 'saving' ? 'Saving and restarting…' : saveState === 'saved' ? 'Connection settings saved' : saveState === 'error' ? 'Try again' : 'Save connection settings'))
       )
     )
   );
@@ -414,18 +417,18 @@ function DesktopConnectionSettings({ expanded = false }) {
 
 function AccountWorkspaceSwitch() {
   return h('details', { className: 'settings-advanced connection-account-switch' },
-    h('summary', null, 'Use a different OpenAI account or workspace'),
+    h('summary', null, t('Use a different OpenAI account or workspace')),
     h('div', { className: 'settings-panel-body connection-account-switch-body' },
       h('ol', null,
-        h('li', null, 'Sign in to the OpenAI account that you want to use.'),
-        h('li', null, 'Select or create a Secure MCP Tunnel in that organization.'),
-        h('li', null, 'Create a runtime API key for that tunnel.'),
-        h('li', null, 'Replace the Tunnel ID and runtime API key above. Then save the connection settings.'),
-        h('li', null, 'In ChatGPT, update the existing Rel.AI connector if it is available in that workspace. Create one connector only if the workspace does not have it.')
+        h('li', null, t('Sign in to the OpenAI account that you want to use.')),
+        h('li', null, t('Select or create a Secure MCP Tunnel in that organization.')),
+        h('li', null, t('Create a runtime API key for that tunnel.')),
+        h('li', null, t('Replace the Tunnel ID and runtime API key above. Then save the connection settings.')),
+        h('li', null, t('In ChatGPT, update the existing Rel.AI connector if it is available in that workspace. Create one connector only if the workspace does not have it.'))
       ),
       h('div', { className: 'connection-account-switch-actions' },
-        h('a', { className: 'buttonlike secondary compact-button', href: 'https://platform.openai.com/settings/organization/tunnels', target: '_blank', rel: 'noopener noreferrer' }, 'OpenAI Tunnels'),
-        h('a', { className: 'buttonlike secondary compact-button', href: 'https://platform.openai.com/settings/organization/api-keys', target: '_blank', rel: 'noopener noreferrer' }, 'OpenAI API Keys')
+        h('a', { className: 'buttonlike secondary compact-button', href: 'https://platform.openai.com/settings/organization/tunnels', target: '_blank', rel: 'noopener noreferrer' }, t('OpenAI Tunnels')),
+        h('a', { className: 'buttonlike secondary compact-button', href: 'https://platform.openai.com/settings/organization/api-keys', target: '_blank', rel: 'noopener noreferrer' }, t('OpenAI API Keys'))
       )
     )
   );
@@ -449,21 +452,43 @@ function connectionSnapshot(value) {
 
 function tunnelCredentialError(value = {}) {
   const code = String(value.tunnelErrorCode || '');
-  if (code === 'tunnel_authentication_failed') return value.tunnelError || 'OpenAI rejected the runtime API key. Replace it with the correct key, then reconnect.';
-  if (code === 'tunnel_access_denied') return value.tunnelError || 'This runtime API key does not have access to the configured tunnel.';
-  if (code === 'tunnel_not_found') return value.tunnelError || 'The configured tunnel could not be found for this OpenAI account.';
+  if (code === 'tunnel_authentication_failed') return value.tunnelError || t('OpenAI rejected the runtime API key. Replace it with the correct key, then reconnect.');
+  if (code === 'tunnel_access_denied') return value.tunnelError || t('This runtime API key does not have access to the configured tunnel.');
+  if (code === 'tunnel_not_found') return value.tunnelError || t('The configured tunnel could not be found for this OpenAI account.');
   return '';
 }
 
 function PreferencesPage() {
   const [theme, setTheme] = useState(() => getUiPreferences().theme);
+  const language = getLanguagePreference();
+  const [savingLanguage, setSavingLanguage] = useState(false);
+  const changeLanguage = async value => {
+    if (savingLanguage || value === language) return;
+    setSavingLanguage(true);
+    try {
+      await setLanguagePreference(value);
+    } catch {
+      toast(t('Language preference could not be saved.'), { variant: 'error' });
+    } finally {
+      setSavingLanguage(false);
+    }
+  };
   return h(React.Fragment, null,
-    h(SettingsHeader, { title: 'Preferences', description: 'Change appearance and desktop notifications.' }),
-    h(Card, { title: 'Appearance' },
+    h(SettingsHeader, { title: t('Preferences'), description: t('Change appearance, language, and desktop notifications.') }),
+    h(Card, { title: t('Appearance') },
       h('div', { className: 'settings-field' },
-        h('span', null, 'Theme'),
+        h('span', null, t('Theme')),
         h(ThemeSwitch, { theme, onChange: value => { setTheme(value); setThemePreference(value); } }),
-        h('p', { className: 'settings-help' }, 'Theme applies to the dashboard and Rel.AI Pulse. Setup and recovery windows follow your system appearance.')
+        h('p', { className: 'settings-help' }, t('Theme applies to the dashboard and Rel.AI Pulse. Setup and recovery windows follow your system appearance.'))
+      ),
+      h('div', { className: 'settings-field' },
+        h('label', { htmlFor: 'uiLanguagePreference' }, t('Language')),
+        h('select', { id: 'uiLanguagePreference', value: language, disabled: savingLanguage, onChange: event => void changeLanguage(event.currentTarget.value) },
+          h('option', { value: 'system' }, t('Follow system language')),
+          h('option', { value: 'zh-CN' }, '简体中文'),
+          h('option', { value: 'en' }, 'English')
+        ),
+        h('p', { className: 'settings-help' }, t('Choose the language for Rel.AI controls.'))
       )
     ),
     h(DesktopNotificationsSettings)
@@ -481,7 +506,7 @@ function ThemeSwitch({ theme, onChange }) {
     refs.current[index]?.focus();
     onChange(option[0]);
   };
-  return h('div', { className: 'theme-switch', role: 'radiogroup', 'aria-label': 'Theme', onKeyDown: event => {
+  return h('div', { className: 'theme-switch', role: 'radiogroup', 'aria-label': t('Theme'), onKeyDown: event => {
     const index = options.findIndex(([value]) => value === theme);
     let next = null;
     if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') next = (index - 1 + options.length) % options.length;
@@ -492,8 +517,8 @@ function ThemeSwitch({ theme, onChange }) {
     event.preventDefault();
     selectIndex(next);
   } }, options.map(([value, label], index) => h('button', {
-    key: value, type: 'button', className: 'theme-switch-option', title: label, role: 'radio', 'data-theme-option': value,
-    'aria-label': label, 'aria-checked': String(theme === value), tabIndex: theme === value ? 0 : -1,
+    key: value, type: 'button', className: 'theme-switch-option', title: t(label), role: 'radio', 'data-theme-option': value,
+    'aria-label': t(label), 'aria-checked': String(theme === value), tabIndex: theme === value ? 0 : -1,
     ref: element => { refs.current[index] = element; }, onClick: () => onChange(value)
   }, h(Icon, { name: value }))));
 }
@@ -512,7 +537,7 @@ function DesktopNotificationsSettings() {
   }, [bridge]);
 
   if (!bridge?.setNotificationPreferences || !bridge?.getNotificationPreferences || !preferences) {
-    return h(Card, { title: 'Desktop notifications' }, h('p', { className: 'muted' }, 'Desktop notification controls are available only inside the installed Rel.AI desktop app.'));
+    return h(Card, { title: t('Desktop notifications') }, h('p', { className: 'muted' }, t('Desktop notification controls are available only inside the installed Rel.AI desktop app.')));
   }
   const update = async patch => {
     if (pending) return;
@@ -520,7 +545,7 @@ function DesktopNotificationsSettings() {
     setPending(true);
     try {
       const result = await bridge.setNotificationPreferences(patch);
-      if (result?.ok === false) throw new Error(result.error || 'Desktop notification preferences could not be changed.');
+      if (result?.ok === false) throw new Error(result.error || t('Desktop notification preferences could not be changed.'));
       setPreferences(normalizeNotificationPreferences(result?.preferences || { ...preferences, ...patch }));
     } catch (error) {
       setPreferences(previous);
@@ -529,24 +554,24 @@ function DesktopNotificationsSettings() {
       setPending(false);
     }
   };
-  return h(Card, { title: 'Desktop notifications' },
+  return h(Card, { title: t('Desktop notifications') },
     h(ToggleRow, {
-      label: 'Desktop notifications', checked: preferences.enabled, disabled: pending, busy: pending,
-      enabledLabel: 'Notifications on', disabledLabel: 'Notifications off',
-      help: 'Turn all desktop notifications on or off. Your choices below are kept while notifications are off.',
+      label: t('Desktop notifications'), checked: preferences.enabled, disabled: pending, busy: pending,
+      enabledLabel: t('Notifications on'), disabledLabel: t('Notifications off'),
+      help: t('Turn all desktop notifications on or off. Your choices below are kept while notifications are off.'),
       onChange: value => void update({ enabled: value })
     }),
     NOTIFICATION_CATEGORIES.map(([key, label, help]) => h(ToggleRow, {
-      key, label, help, checked: preferences[key], disabled: pending || !preferences.enabled, busy: pending,
-      enabledLabel: 'On', disabledLabel: 'Off', onChange: value => void update({ [key]: value })
+      key, label: t(label), help: t(help), checked: preferences[key], disabled: pending || !preferences.enabled, busy: pending,
+      enabledLabel: t('On'), disabledLabel: t('Off'), onChange: value => void update({ [key]: value })
     })),
     preferences.ignoredUpdateVersion ? h('div', { className: 'settings-field' },
-      h('span', null, 'Muted update notification'),
+      h('span', null, t('Muted update notification')),
       h('div', { className: 'connection-actions' },
         h('code', null, `v${preferences.ignoredUpdateVersion}`),
-        h('button', { className: 'secondary', type: 'button', disabled: pending, onClick: () => void update({ ignoredUpdateVersion: '' }) }, `Show notifications for v${preferences.ignoredUpdateVersion} again`)
+        h('button', { className: 'secondary', type: 'button', disabled: pending, onClick: () => void update({ ignoredUpdateVersion: '' }) }, t`Show notifications for v${preferences.ignoredUpdateVersion} again`)
       ),
-      h('p', { className: 'settings-help' }, 'Notifications for only this exact version are muted. Newer versions can still notify you.')
+      h('p', { className: 'settings-help' }, t('Notifications for only this exact version are muted. Newer versions can still notify you.'))
     ) : null
   );
 }
@@ -581,8 +606,8 @@ function ApplicationPage({ computerControl }) {
     return () => { active = false; };
   }, [desktop]);
   return h(React.Fragment, null,
-    h(SettingsHeader, { title: 'App', description: 'Startup, background behavior, updates, and local storage.' }),
-    lifecycle === undefined ? h('div', { className: 'settings-loading', role: 'status' }, 'Loading app settings…') : h(React.Fragment, null,
+    h(SettingsHeader, { title: t('App'), description: t('Startup, background behavior, updates, and local storage.') }),
+    lifecycle === undefined ? h('div', { className: 'settings-loading', role: 'status' }, t('Loading app settings…')) : h(React.Fragment, null,
       h(StartupSettings, { initial: lifecycle }),
       h(ComputerControlSettings, { initial: computerControl }),
       h(ApplicationUpdates, { lifecycle, buildStatus: desktopStatus?.buildStatus }),
@@ -595,7 +620,7 @@ function ApplicationPage({ computerControl }) {
         }))
       }) : null,
       typeof desktop?.quitApp === 'function' || typeof desktop?.logout === 'function'
-        ? h(Card, { title: 'Application controls' },
+        ? h(Card, { title: t('Application controls') },
             typeof desktop?.logout === 'function' ? h(LogoutRow) : null,
             typeof desktop?.quitApp === 'function' ? h(QuitRow) : null
           )
@@ -606,13 +631,13 @@ function ApplicationPage({ computerControl }) {
 
 function DeveloperOptions({ enabledFeatures, onChange }) {
   return h('details', { className: 'settings-advanced developer-options' },
-    h('summary', null, 'Developer options'),
+    h('summary', null, t('Developer options')),
     h('div', { className: 'settings-panel-body' },
-      h('p', { className: 'settings-help' }, 'Enable only the experimental features you want to use.'),
+      h('p', { className: 'settings-help' }, t('Enable only the experimental features you want to use.')),
       DEVELOPER_FEATURE_FLAGS.map(feature => h(ToggleRow, {
         key: feature.id,
-        label: feature.label,
-        help: feature.help,
+        label: t(feature.label),
+        help: t(feature.help),
         checked: enabledFeatures[feature.id] === true,
         onChange: enabled => onChange(feature.id, enabled)
       }))
@@ -625,7 +650,7 @@ function StartupSettings({ initial }) {
   const [busy, setBusy] = useState('');
   const desktop = window.relaiDesktop;
   useEffect(() => setState(initial), [initial]);
-  if (!state) return h(Card, { title: 'Startup & background', className: 'desktop-startup-panel' }, h('p', { className: 'muted' }, 'Application controls are available only inside the installed desktop app.'));
+  if (!state) return h(Card, { title: t('Startup & background'), className: 'desktop-startup-panel' }, h('p', { className: 'muted' }, t('Application controls are available only inside the installed desktop app.')));
 
   const update = async (key, enabled) => {
     setBusy(key);
@@ -637,7 +662,7 @@ function StartupSettings({ initial }) {
       const nextStatus = result?.status || {};
       if (key === 'launchAtLogin') setState(current => ({ ...current, launchAtLogin: { ...current.launchAtLogin, ...nextStatus.launchAtLogin } }));
       else setState(current => ({ ...current, [key]: nextStatus[key] === true }));
-      if (result?.ok === false) toast(result.error || 'Application setting could not be changed.', { variant: 'error' });
+      if (result?.ok === false) toast(result.error || t('Application setting could not be changed.'), { variant: 'error' });
     } catch (error) {
       toast(messageOf(error), { variant: 'error' });
     } finally {
@@ -645,39 +670,39 @@ function StartupSettings({ initial }) {
     }
   };
   const launch = state.launchAtLogin || {};
-  return h(Card, { title: 'Startup & background', className: 'desktop-startup-panel' },
+  return h(Card, { title: t('Startup & background'), className: 'desktop-startup-panel' },
     h(ToggleRow, {
-      label: 'Launch Rel.AI at sign-in', checked: launch.enabled === true, disabled: busy === 'launchAtLogin' || !launch.supported, busy: busy === 'launchAtLogin',
-      enabledLabel: 'Launch at sign-in on', disabledLabel: 'Launch at sign-in off',
-      help: launch.supported ? 'Starts Rel.AI in the background after you sign in so it is ready when you need it.' : launch.reason || 'This build cannot register itself for sign-in.',
+      label: t('Launch Rel.AI at sign-in'), checked: launch.enabled === true, disabled: busy === 'launchAtLogin' || !launch.supported, busy: busy === 'launchAtLogin',
+      enabledLabel: t('Launch at sign-in on'), disabledLabel: t('Launch at sign-in off'),
+      help: launch.supported ? t('Starts Rel.AI in the background after you sign in so it is ready when you need it.') : launch.reason || t('This build cannot register itself for sign-in.'),
       onChange: value => void update('launchAtLogin', value)
     }),
     h(ToggleRow, {
-      label: 'Keep Rel.AI running when I close the window', checked: state.keepRunningOnClose !== false, disabled: busy === 'keepRunningOnClose', busy: busy === 'keepRunningOnClose',
-      enabledLabel: 'Keep running on close', disabledLabel: 'Quit on close',
-      help: 'Keeps the local ChatGPT connection available in the system tray. Turn this off if closing the dashboard should quit Rel.AI completely.',
+      label: t('Keep Rel.AI running when I close the window'), checked: state.keepRunningOnClose !== false, disabled: busy === 'keepRunningOnClose', busy: busy === 'keepRunningOnClose',
+      enabledLabel: t('Keep running on close'), disabledLabel: t('Quit on close'),
+      help: t('Keeps the local ChatGPT connection available in the system tray. Turn this off if closing the dashboard should quit Rel.AI completely.'),
       onChange: value => void update('keepRunningOnClose', value)
     }),
     h(ToggleRow, {
-      label: 'Show Rel.AI Pulse', checked: state.pulseEnabled !== false, disabled: busy === 'pulseEnabled', busy: busy === 'pulseEnabled',
-      enabledLabel: 'Pulse on', disabledLabel: 'Pulse off',
-      help: 'Shows a small local status card while Rel.AI is running. It highlights local work and action-required states; approvals still happen in ChatGPT.',
+      label: t('Show Rel.AI Pulse'), checked: state.pulseEnabled !== false, disabled: busy === 'pulseEnabled', busy: busy === 'pulseEnabled',
+      enabledLabel: t('Pulse on'), disabledLabel: t('Pulse off'),
+      help: t('Shows a small local status card while Rel.AI is running. It highlights local work and action-required states; approvals still happen in ChatGPT.'),
       onChange: value => void update('pulseEnabled', value)
     }),
     h(ToggleRow, {
-      label: 'Keep computer awake', checked: state.keepAwake === true, disabled: busy === 'keepAwake', busy: busy === 'keepAwake',
-      enabledLabel: 'Keep computer awake on', disabledLabel: 'Keep computer awake off',
-      help: 'Prevents this computer from automatically sleeping or hibernating while Rel.AI is running. The display can still turn off normally.',
+      label: t('Keep computer awake'), checked: state.keepAwake === true, disabled: busy === 'keepAwake', busy: busy === 'keepAwake',
+      enabledLabel: t('Keep computer awake on'), disabledLabel: t('Keep computer awake off'),
+      help: t('Prevents this computer from automatically sleeping or hibernating while Rel.AI is running. The display can still turn off normally.'),
       onChange: value => void update('keepAwake', value)
     }),
     h(ToggleRow, {
-      label: 'Reduced background work', checked: state.reducedBackgroundWork === true, disabled: busy === 'reducedBackgroundWork', busy: busy === 'reducedBackgroundWork',
-      enabledLabel: 'Reduced background work on', disabledLabel: 'Reduced background work off',
-      help: 'Skips optional repository pre-warming to reduce idle CPU and memory use. Repository analysis still runs normally when a task needs it.',
+      label: t('Reduced background work'), checked: state.reducedBackgroundWork === true, disabled: busy === 'reducedBackgroundWork', busy: busy === 'reducedBackgroundWork',
+      enabledLabel: t('Reduced background work on'), disabledLabel: t('Reduced background work off'),
+      help: t('Skips optional repository pre-warming to reduce idle CPU and memory use. Repository analysis still runs normally when a task needs it.'),
       onChange: value => void update('reducedBackgroundWork', value)
     }),
-    state.updated ? h(LifecycleNotice, { tone: 'ok', title: 'Update completed', text: `Rel.AI started successfully after updating from v${state.previousVersion || 'an earlier version'} to v${state.currentVersion || 'the current version'}.` }) : null,
-    state.recoveredAfterUncleanShutdown ? h(LifecycleNotice, { tone: 'warn', title: 'Rel.AI recovered after closing unexpectedly', text: 'Rel.AI did not close normally last time, but your settings were kept and the app started normally. Open Troubleshooting only if this keeps happening.' }) : null
+    state.updated ? h(LifecycleNotice, { tone: 'ok', title: t('Update completed'), text: t`Rel.AI started successfully after updating from v${state.previousVersion || t('an earlier version')} to v${state.currentVersion || t('the current version')}.` }) : null,
+    state.recoveredAfterUncleanShutdown ? h(LifecycleNotice, { tone: 'warn', title: t('Rel.AI recovered after closing unexpectedly'), text: t('Rel.AI did not close normally last time, but your settings were kept and the app started normally. Open Troubleshooting only if this keeps happening.') }) : null
   );
 }
 
@@ -694,13 +719,13 @@ function ComputerControlSettings({ initial = {} }) {
     setBusy(true);
     const result = await postJson('/api/computer', { enabled: value }, { cache: 'no-store' }).catch(error => ({ ok: false, error: messageOf(error) }));
     setBusy(false);
-    if (!result?.ok) { toast(result?.error || 'Could not save computer control settings.', { variant: 'error' }); return; }
+    if (!result?.ok) { toast(result?.error || t('Could not save computer control settings.'), { variant: 'error' }); return; }
     setEnabled(result?.settings?.enabled === true);
-    toast(value ? 'Computer control is enabled.' : 'Computer control is disabled.', { variant: 'success' });
+    toast(t(value ? 'Computer control is enabled.' : 'Computer control is disabled.'), { variant: 'success' });
   };
-  return h(Card, { title: 'Computer control' }, h(ToggleRow, {
-    label: 'Allow computer control', checked: enabled, disabled: busy, busy,
-    enabledLabel: 'Allowed', disabledLabel: 'Off', help, onChange: value => void update(value)
+  return h(Card, { title: t('Computer control') }, h(ToggleRow, {
+    label: t('Allow computer control'), checked: enabled, disabled: busy, busy,
+    enabledLabel: t('Allowed'), disabledLabel: t('Off'), help: t(help), onChange: value => void update(value)
   }));
 }
 
@@ -724,9 +749,9 @@ function ApplicationUpdates({ lifecycle, buildStatus }) {
     return () => { active = false; if (typeof remove === 'function') remove(); };
   }, [bridge, supported]);
 
-  if (!supported) return h(Card, { title: 'App updates', className: 'application-update-panel' },
-    h('div', { className: 'application-update-summary' }, h('div', null, h('span', { className: 'application-update-label' }, 'Update method'), h('strong', null, 'Manual download')), h(StatusPill, { label: 'Desktop required', tone: 'warn' })),
-    h('p', { className: 'muted application-update-copy' }, 'Automatic updates are managed by the installed Rel.AI desktop app.'),
+  if (!supported) return h(Card, { title: t('App updates'), className: 'application-update-panel' },
+    h('div', { className: 'application-update-summary' }, h('div', null, h('span', { className: 'application-update-label' }, t('Update method')), h('strong', null, t('Manual download'))), h(StatusPill, { label: t('Desktop required'), tone: 'warn' })),
+    h('p', { className: 'muted application-update-copy' }, t('Automatic updates are managed by the installed Rel.AI desktop app.')),
     h('div', { className: 'connection-actions' }, h('a', { className: 'buttonlike secondary', href: RELEASES_URL, target: '_blank', rel: 'noreferrer' }, 'GitHub Releases'))
   );
   const updateAuto = async value => {
@@ -736,7 +761,7 @@ function ApplicationUpdates({ lifecycle, buildStatus }) {
       const result = await bridge.setAppPreferences({ autoDownloadUpdates: value });
       const actual = result?.status?.autoDownloadUpdates === true;
       setAutoDownload(actual);
-      if (result?.ok === false) toast(result.error || 'Automatic update downloads could not be changed.', { variant: 'error' });
+      if (result?.ok === false) toast(result.error || t('Automatic update downloads could not be changed.'), { variant: 'error' });
     } catch (error) { toast(messageOf(error), { variant: 'error' }); }
     finally { setBusy(''); }
   };
@@ -747,7 +772,7 @@ function ApplicationUpdates({ lifecycle, buildStatus }) {
     try {
       const result = await bridge[method]();
       if (result?.status) setStatus(result.status);
-      if (result?.ok === false) toast(result.error || 'The update action failed.', { variant: 'error' });
+      if (result?.ok === false) toast(result.error || t('The update action failed.'), { variant: 'error' });
     } catch (error) {
       const message = messageOf(error);
       setStatus(current => ({ ...(current || {}), state: 'error', error: message, errorCode: 'update_failed' }));
@@ -757,19 +782,19 @@ function ApplicationUpdates({ lifecycle, buildStatus }) {
   const current = status || { state: 'idle' };
   const buildId = buildIdOf(buildStatus);
   const view = updateView(current, autoDownload);
-  return h(Card, { title: 'App updates', className: 'application-update-panel' },
+  return h(Card, { title: t('App updates'), className: 'application-update-panel' },
     h(ToggleRow, {
-      label: 'Download verified updates automatically', checked: autoDownload, disabled: busy === 'auto', busy: busy === 'auto',
-      enabledLabel: 'Automatic downloads on', disabledLabel: 'Ask before downloading',
-      help: 'Downloads a verified update in the background when one is found. Rel.AI still asks before installing it or opening the macOS installer.',
+      label: t('Download verified updates automatically'), checked: autoDownload, disabled: busy === 'auto', busy: busy === 'auto',
+      enabledLabel: t('Automatic downloads on'), disabledLabel: t('Ask before downloading'),
+      help: t('Downloads a verified update in the background when one is found. Rel.AI still asks before installing it or opening the macOS installer.'),
       onChange: value => void updateAuto(value)
     }),
     h('div', { className: 'application-update-status', 'data-auto-download-updates': String(autoDownload) },
       h('div', { className: 'application-update-summary' },
         h('div', null,
-          h('span', { className: 'application-update-label' }, 'Installed version'),
-          h('strong', null, current.currentVersion ? `v${current.currentVersion}` : 'Unknown version'),
-          buildId ? h('span', { className: 'application-update-label' }, 'Build') : null,
+          h('span', { className: 'application-update-label' }, t('Installed version')),
+          h('strong', null, current.currentVersion ? `v${current.currentVersion}` : t('Unknown version')),
+          buildId ? h('span', { className: 'application-update-label' }, t('Build')) : null,
           buildId ? h('span', { className: 'application-update-build' }, buildId) : null
         ),
         h(StatusPill, { label: view.label, tone: view.tone })
@@ -778,12 +803,12 @@ function ApplicationUpdates({ lifecycle, buildStatus }) {
       h(UpdateSupportPolicy, { policy: current.supportPolicy }),
       h(UpdateReleaseNotes, { status: current, releaseNotes }),
       current.state === 'downloading' ? h(UpdateProgress, { progress: current.progress }) : null,
-      current.errorCode ? h('code', { className: 'application-update-code' }, `Error code: ${current.errorCode}`) : null,
+      current.errorCode ? h('code', { className: 'application-update-code' }, t`Error code: ${current.errorCode}`) : null,
       h('div', { className: 'connection-actions application-update-actions' },
-        view.action ? h('button', { className: view.action.className, type: 'button', disabled: Boolean(busy), onClick: () => void run(view.action.id) }, busy === view.action.id ? `${view.action.label}…` : view.action.label) : null,
-        view.secondary ? h('button', { className: 'secondary', type: 'button', disabled: Boolean(busy), onClick: () => void run(view.secondary.id) }, view.secondary.label) : null,
+        view.action ? h('button', { className: view.action.className, type: 'button', disabled: Boolean(busy), onClick: () => void run(view.action.id) }, busy === view.action.id ? t`${view.action.label}…` : t(view.action.label)) : null,
+        view.secondary ? h('button', { className: 'secondary', type: 'button', disabled: Boolean(busy), onClick: () => void run(view.secondary.id) }, t(view.secondary.label)) : null,
         h('a', { className: 'buttonlike secondary', href: RELEASES_URL, target: '_blank', rel: 'noreferrer' }, 'GitHub Releases'),
-        current.state === 'error' ? h('a', { className: 'buttonlike secondary', href: '#diagnostics' }, 'Troubleshoot') : null
+        current.state === 'error' ? h('a', { className: 'buttonlike secondary', href: '#diagnostics' }, t('Troubleshoot')) : null
       )
     )
   );
@@ -795,17 +820,17 @@ function buildIdOf(buildStatus = {}) {
 
 function updateView(status = {}, autoDownload = false) {
   const state = String(status.state || 'idle');
-  const currentVersion = status.currentVersion ? `v${status.currentVersion}` : 'Unknown version';
+  const currentVersion = status.currentVersion ? `v${status.currentVersion}` : t('Unknown version');
   const availableVersion = status.availableVersion ? `v${status.availableVersion}` : '';
-  if (state === 'unsupported') return { label: 'Manual update', tone: 'warn', description: status.supportReason || 'This build must be updated manually from GitHub Releases.' };
-  if (state === 'checking') return { label: 'Checking', tone: 'working', description: 'Checking for a newer version of Rel.AI.' };
-  if (state === 'up_to_date') return { label: 'Up to date', tone: 'ok', description: `${currentVersion} is the latest available version. Rel.AI checks again once per day.`, action: { id: 'check', label: 'Check again', className: 'secondary' } };
-  if (state === 'available') return { label: 'Update available', tone: 'warn', description: autoDownload ? `${availableVersion || 'A newer version'} is available. Rel.AI will download it automatically without restarting.` : `${availableVersion || 'A newer version'} is available. Downloading does not restart Rel.AI.`, action: { id: 'download', label: `Download ${availableVersion || 'update'}`, className: 'primary' }, secondary: { id: 'check', label: 'Check again' } };
-  if (state === 'downloading') return { label: 'Downloading', tone: 'working', description: `Downloading ${availableVersion || 'the update'}. You can keep using Rel.AI while it downloads.` };
-  if (state === 'downloaded') { const opensDmg = status.installMode === 'open_dmg'; return { label: 'Ready to install', tone: status.error ? 'warn' : 'ok', description: opensDmg ? `${availableVersion || 'The update'} is verified and downloaded. Open the DMG, then replace Rel.AI MCP in Applications.` : (status.error || `${availableVersion || 'The update'} is ready. Rel.AI stays open while it prepares the update, then restarts automatically for the final swap.`), action: { id: 'install', label: opensDmg ? 'DMG' : 'Install update', className: 'primary' } }; }
-  if (state === 'installing') return { label: 'Installing', tone: 'working', description: 'Rel.AI is temporarily paused while it prepares the update. It will restart automatically when the final swap is ready.' };
-  if (state === 'error') return { label: 'Update failed', tone: 'bad', description: status.error || 'The update could not be completed. The installed version is still available.', action: { id: 'check', label: 'Try again', className: 'primary' } };
-  return { label: 'Updates enabled', tone: 'ok', description: autoDownload ? (status.installMode === 'open_dmg' ? 'Rel.AI watches for newly published releases and downloads verified updates automatically. It still asks before opening the macOS installer.' : 'Rel.AI watches for newly published releases and downloads verified updates automatically. It still asks before restarting to install.') : (status.installMode === 'open_dmg' ? 'Rel.AI watches for newly published releases while it is running and fully verifies updates at least once per day. Rel.AI asks before it downloads an update or opens the macOS installer.' : 'Rel.AI watches for newly published releases while it is running and fully verifies updates at least once per day. Rel.AI asks before it downloads an update or restarts.'), action: { id: 'check', label: 'Check for updates', className: 'secondary' } };
+  if (state === 'unsupported') return { label: t('Manual update'), tone: 'warn', description: status.supportReason || t('This build must be updated manually from GitHub Releases.') };
+  if (state === 'checking') return { label: t('Checking'), tone: 'working', description: t('Checking for a newer version of Rel.AI.') };
+  if (state === 'up_to_date') return { label: t('Up to date'), tone: 'ok', description: t`${currentVersion} is the latest available version. Rel.AI checks again once per day.`, action: { id: 'check', label: t('Check again'), className: 'secondary' } };
+  if (state === 'available') return { label: t('Update available'), tone: 'warn', description: autoDownload ? t`${availableVersion || t('A newer version')} is available. Rel.AI will download it automatically without restarting.` : t`${availableVersion || t('A newer version')} is available. Downloading does not restart Rel.AI.`, action: { id: 'download', label: t`Download ${availableVersion || t('update')}`, className: 'primary' }, secondary: { id: 'check', label: t('Check again') } };
+  if (state === 'downloading') return { label: t('Downloading'), tone: 'working', description: t`Downloading ${availableVersion || t('the update')}. You can keep using Rel.AI while it downloads.` };
+  if (state === 'downloaded') { const opensDmg = status.installMode === 'open_dmg'; return { label: t('Ready to install'), tone: status.error ? 'warn' : 'ok', description: opensDmg ? t`${availableVersion || t('The update')} is verified and downloaded. Open the DMG, then replace Rel.AI MCP in Applications.` : (status.error || t`${availableVersion || t('The update')} is ready. Rel.AI stays open while it prepares the update, then restarts automatically for the final swap.`), action: { id: 'install', label: opensDmg ? 'DMG' : t('Install update'), className: 'primary' } }; }
+  if (state === 'installing') return { label: t('Installing'), tone: 'working', description: t('Rel.AI is temporarily paused while it prepares the update. It will restart automatically when the final swap is ready.') };
+  if (state === 'error') return { label: t('Update failed'), tone: 'bad', description: status.error || t('The update could not be completed. The installed version is still available.'), action: { id: 'check', label: t('Try again'), className: 'primary' } };
+  return { label: t('Updates enabled'), tone: 'ok', description: t(autoDownload ? (status.installMode === 'open_dmg' ? 'Rel.AI watches for newly published releases and downloads verified updates automatically. It still asks before opening the macOS installer.' : 'Rel.AI watches for newly published releases and downloads verified updates automatically. It still asks before restarting to install.') : (status.installMode === 'open_dmg' ? 'Rel.AI watches for newly published releases while it is running and fully verifies updates at least once per day. Rel.AI asks before it downloads an update or opens the macOS installer.' : 'Rel.AI watches for newly published releases while it is running and fully verifies updates at least once per day. Rel.AI asks before it downloads an update or restarts.')), action: { id: 'check', label: t('Check for updates'), className: 'secondary' } };
 }
 
 function UpdateSupportPolicy({ policy }) {
@@ -813,7 +838,7 @@ function UpdateSupportPolicy({ policy }) {
   const view = supportPolicyView(policy);
   return h('div', { className: 'application-update-policy' },
     h('div', { className: 'application-update-summary' },
-      h('div', null, h('span', { className: 'application-update-label' }, 'Version support'), h('strong', null, policy.minimumSupportedVersion ? `v${policy.minimumSupportedVersion} or newer` : 'Check unavailable')),
+      h('div', null, h('span', { className: 'application-update-label' }, t('Version support')), h('strong', null, policy.minimumSupportedVersion ? t`v${policy.minimumSupportedVersion} or newer` : t('Check unavailable'))),
       h(StatusPill, { label: view.label, tone: view.tone })
     ),
     h('p', { className: 'muted application-update-copy' }, view.description)
@@ -823,15 +848,15 @@ function UpdateSupportPolicy({ policy }) {
 function UpdateReleaseNotes({ status, releaseNotes }) {
   const available = Array.isArray(status.releaseNotes) ? status.releaseNotes.filter(entry => String(entry?.note || '').trim()) : [];
   if (available.length) return h('details', { className: 'application-update-release-notes', open: true },
-    h('summary', null, `What's new in ${status.availableVersion ? `v${status.availableVersion}` : 'the update'}`),
+    h('summary', null, t`What's new in ${status.availableVersion ? `v${status.availableVersion}` : t('the update')}`),
     h('div', { className: 'application-update-release-notes-body' }, available.map((entry, index) => h('div', { className: 'application-update-release-note', key: `${entry.version || ''}-${index}` }, entry.version && entry.version !== status.availableVersion ? h('strong', null, `v${entry.version}`) : null, h('p', null, normalizeReleaseNoteText(entry.note)))))
   );
   const releases = Array.isArray(releaseNotes?.releases) ? releaseNotes.releases.filter(entry => String(entry?.version || '').trim()) : [];
-  if (releases.length) return h('details', { className: 'application-update-release-notes' }, h('summary', null, 'What changed'), h('div', { className: 'application-update-release-notes-body' }, releases.map(release => h(ChangelogRelease, { release, key: release.version }))));
+  if (releases.length) return h('details', { className: 'application-update-release-notes' }, h('summary', null, t('What changed')), h('div', { className: 'application-update-release-notes-body' }, releases.map(release => h(ChangelogRelease, { release, key: release.version }))));
   const bullets = Array.isArray(releaseNotes?.bullets) ? releaseNotes.bullets.filter(Boolean).slice(0, 8) : [];
   if (!releaseNotes?.version || (!releaseNotes?.headline && !bullets.length)) return null;
   return h('details', { className: 'application-update-release-notes' },
-    h('summary', null, `What changed · v${releaseNotes.version}`),
+    h('summary', null, t`What changed · v${releaseNotes.version}`),
     h('div', { className: 'application-update-release-notes-body' }, releaseNotes.headline ? h('p', { className: 'application-update-release-headline' }, releaseNotes.headline) : null, bullets.length ? h('ul', null, bullets.map((item, index) => h('li', { key: index }, item))) : null)
   );
 }
@@ -851,8 +876,8 @@ function UpdateProgress({ progress = {} }) {
   const total = formatBytes(progress.total);
   const speed = formatBytes(progress.bytesPerSecond);
   return h('div', { className: 'application-update-progress' },
-    h('progress', { max: 100, value: percent, 'aria-label': 'Update download progress' }, `${percent}%`),
-    h('span', null, `${percent.toFixed(1)}%${total ? ` · ${transferred} of ${total}` : ''}${speed ? ` · ${speed}/s` : ''}`)
+    h('progress', { max: 100, value: percent, 'aria-label': t('Update download progress') }, `${percent}%`),
+    h('span', null, `${percent.toFixed(1)}%${total ? t` · ${transferred} of ${total}` : ''}${speed ? ` · ${speed}/s` : ''}`)
   );
 }
 
@@ -870,79 +895,79 @@ function LocalDataSettings() {
     } catch (loadError) { setError(messageOf(loadError)); }
   }, [bridge]);
   useEffect(() => { void load(); }, [load]);
-  if (!bridge?.getLocalDataUsage) return h(Card, { title: 'Local data & storage', className: 'desktop-local-data-panel' }, h('p', { className: 'settings-help' }, 'Local data controls are available only inside the installed Rel.AI desktop app.'));
-  if (!usage && !error) return h(Card, { title: 'Local data & storage', className: 'desktop-local-data-panel' }, h('div', { className: 'settings-loading', role: 'status' }, 'Calculating local data use…'));
-  if (!usage) return h(Card, { title: 'Local data & storage', className: 'desktop-local-data-panel' }, h('p', { className: 'settings-help' }, error));
+  if (!bridge?.getLocalDataUsage) return h(Card, { title: t('Local data & storage'), className: 'desktop-local-data-panel' }, h('p', { className: 'settings-help' }, t('Local data controls are available only inside the installed Rel.AI desktop app.')));
+  if (!usage && !error) return h(Card, { title: t('Local data & storage'), className: 'desktop-local-data-panel' }, h('div', { className: 'settings-loading', role: 'status' }, t('Calculating local data use…')));
+  if (!usage) return h(Card, { title: t('Local data & storage'), className: 'desktop-local-data-panel' }, h('p', { className: 'settings-help' }, error));
   const categories = usage.categories || {};
   const active = Math.max(0, Number(usage.activeTaskCount || 0));
   const clearTemporary = async () => {
-    const confirmed = await confirmAction({ title: 'Clear temporary output', message: 'Clear saved temporary command output?', detail: 'This removes retained command-output files. Project files, task history, and other local data are not changed.', confirmLabel: 'Clear temporary output', danger: true });
+    const confirmed = await confirmAction({ title: t('Clear temporary output'), message: t('Clear saved temporary command output?'), detail: t('This removes retained command-output files. Project files, task history, and other local data are not changed.'), confirmLabel: t('Clear temporary output'), danger: true });
     if (!confirmed) return;
     setBusy('temporary');
     const result = await bridge.clearTemporaryLocalData().catch(actionError => ({ ok: false, error: messageOf(actionError) }));
     setBusy('');
-    if (!result?.ok) { toast(result?.error || 'Temporary command output could not be cleared.', { variant: 'error' }); return; }
-    toast('Temporary command output cleared.', { variant: 'success' }); await load();
+    if (!result?.ok) { toast(result?.error || t('Temporary command output could not be cleared.'), { variant: 'error' }); return; }
+    toast(t('Temporary command output cleared.'), { variant: 'success' }); await load();
   };
   const clearHistory = async () => {
-    const confirmed = await confirmAction({ title: 'Clear task history', message: 'Clear saved task and activity history?', detail: 'This history cannot be restored. Project files, connection settings, and other local data are not changed.', confirmLabel: 'Clear history', danger: true });
+    const confirmed = await confirmAction({ title: t('Clear task history'), message: t('Clear saved task and activity history?'), detail: t('This history cannot be restored. Project files, connection settings, and other local data are not changed.'), confirmLabel: t('Clear history'), danger: true });
     if (!confirmed) return;
     setBusy('history');
     const result = await postJson('/api/diagnostics/reset', { target: 'history', confirm: true }).catch(actionError => ({ ok: false, error: messageOf(actionError) }));
     setBusy('');
-    if (!result?.ok) { toast(result?.error || 'Task and activity history could not be cleared.', { variant: 'error' }); return; }
-    toast(result.message || 'Task and activity history cleared.', { variant: 'success' }); requestDashboardRefresh(); await load();
+    if (!result?.ok) { toast(result?.error || t('Task and activity history could not be cleared.'), { variant: 'error' }); return; }
+    toast(result.message || t('Task and activity history cleared.'), { variant: 'success' }); requestDashboardRefresh(); await load();
   };
   const clearAnalytics = async () => {
     const confirmed = await confirmAction({
-      title: 'Clear analytics',
-      message: 'Clear local analytics history?',
-      detail: 'This removes aggregate action, reliability, timing, project, and failure-category history. Project files, task history, memory, settings, and external telemetry configuration are not changed.',
-      confirmLabel: 'Clear analytics',
+      title: t('Clear analytics'),
+      message: t('Clear local analytics history?'),
+      detail: t('This removes aggregate action, reliability, timing, project, and failure-category history. Project files, task history, memory, settings, and external telemetry configuration are not changed.'),
+      confirmLabel: t('Clear analytics'),
       danger: true
     });
     if (!confirmed) return;
     setBusy('analytics');
     const result = await postJson('/api/diagnostics/reset', { target: 'analytics', confirm: true }).catch(actionError => ({ ok: false, error: messageOf(actionError) }));
     setBusy('');
-    if (!result?.ok) { toast(result?.error || 'Local analytics could not be cleared.', { variant: 'error' }); return; }
-    toast(result.message || 'Local analytics cleared.', { variant: 'success' }); requestDashboardRefresh(); await load();
+    if (!result?.ok) { toast(result?.error || t('Local analytics could not be cleared.'), { variant: 'error' }); return; }
+    toast(result.message || t('Local analytics cleared.'), { variant: 'success' }); requestDashboardRefresh(); await load();
   };
   const clearAppLog = async () => {
-    const confirmed = await confirmAction({ title: 'Clear app log', message: 'Clear the saved app log?', detail: 'The saved troubleshooting log cannot be restored. Project files, connection settings, and other local data are not changed.', confirmLabel: 'Clear app log', danger: true });
+    const confirmed = await confirmAction({ title: t('Clear app log'), message: t('Clear the saved app log?'), detail: t('The saved troubleshooting log cannot be restored. Project files, connection settings, and other local data are not changed.'), confirmLabel: t('Clear app log'), danger: true });
     if (!confirmed) return;
     setBusy('logs');
     const result = await postJson('/api/diagnostics/reset', { target: 'runtime_logs', confirm: true }).catch(actionError => ({ ok: false, error: messageOf(actionError) }));
     setBusy('');
-    if (!result?.ok) { toast(result?.error || 'The saved app log could not be cleared.', { variant: 'error' }); return; }
-    toast(result.message || 'Saved app log cleared.', { variant: 'success' }); requestDashboardRefresh(); await load();
+    if (!result?.ok) { toast(result?.error || t('The saved app log could not be cleared.'), { variant: 'error' }); return; }
+    toast(result.message || t('Saved app log cleared.'), { variant: 'success' }); requestDashboardRefresh(); await load();
   };
   const openFolder = async () => {
     setBusy('folder');
     const result = await bridge.openLocalDataFolder().catch(actionError => ({ ok: false, error: messageOf(actionError) }));
     setBusy('');
-    if (!result?.ok) toast(result?.error || 'The Rel.AI data folder could not be opened.', { variant: 'error' });
+    if (!result?.ok) toast(result?.error || t('The Rel.AI data folder could not be opened.'), { variant: 'error' });
   };
-  return h(Card, { title: 'Local data & storage', className: 'desktop-local-data-panel' },
+  return h(Card, { title: t('Local data & storage'), className: 'desktop-local-data-panel' },
     h('div', { className: 'local-data-summary' },
-      h('div', null, h('span', null, 'Total Rel.AI local data'), h('strong', null, `${formatBytes(usage.totalBytes, { zero: true })}${usage.approximate ? ' approx.' : ''}`)),
-      h('small', null, 'Includes Rel.AI state, desktop app data, connection state, logs, indexes, and caches. Use Log out → Clear all local data to erase everything Rel.AI stores locally.')
+      h('div', null, h('span', null, t('Total Rel.AI local data')), h('strong', null, `${formatBytes(usage.totalBytes, { zero: true })}${usage.approximate ? t(' approx.') : ''}`)),
+      h('small', null, t('Includes Rel.AI state, desktop app data, connection state, logs, indexes, and caches. Use Log out → Clear all local data to erase everything Rel.AI stores locally.'))
     ),
     h('div', { className: 'local-data-list' },
-      h(DataRow, { label: 'Task & activity history', bytes: categories.history?.bytes }),
-      h(DataRow, { label: 'Saved app log', bytes: categories.logs?.bytes }),
-      h(DataRow, { label: 'Temporary command output', bytes: categories.temporary?.bytes }),
-      h(DataRow, { label: 'Repository indexes', bytes: categories.indexes?.bytes }),
-      h(DataRow, { label: 'Other Rel.AI app data', bytes: categories.other?.bytes })
+      h(DataRow, { label: t('Task & activity history'), bytes: categories.history?.bytes }),
+      h(DataRow, { label: t('Saved app log'), bytes: categories.logs?.bytes }),
+      h(DataRow, { label: t('Temporary command output'), bytes: categories.temporary?.bytes }),
+      h(DataRow, { label: t('Repository indexes'), bytes: categories.indexes?.bytes }),
+      h(DataRow, { label: t('Other Rel.AI app data'), bytes: categories.other?.bytes })
     ),
     h('div', { className: 'local-data-actions' },
-      h('button', { className: 'secondary', type: 'button', disabled: active > 0 || busy === 'temporary', onClick: () => void clearTemporary() }, busy === 'temporary' ? 'Clearing…' : 'Clear temporary output'),
-      h('button', { className: 'secondary danger', type: 'button', disabled: active > 0 || busy === 'history', onClick: () => void clearHistory() }, busy === 'history' ? 'Clearing…' : 'Clear task & activity history'),
-      h('button', { className: 'secondary danger', type: 'button', disabled: busy === 'analytics', onClick: () => void clearAnalytics() }, busy === 'analytics' ? 'Clearing…' : 'Clear analytics'),
-      h('button', { className: 'secondary danger', type: 'button', disabled: busy === 'logs', onClick: () => void clearAppLog() }, busy === 'logs' ? 'Clearing…' : 'Clear app log'),
-      h('button', { className: 'secondary', type: 'button', disabled: busy === 'folder', onClick: () => void openFolder() }, busy === 'folder' ? 'Opening…' : 'Data folder')
+      h('button', { className: 'secondary', type: 'button', disabled: active > 0 || busy === 'temporary', onClick: () => void clearTemporary() }, t(busy === 'temporary' ? 'Clearing…' : 'Clear temporary output')),
+      h('button', { className: 'secondary danger', type: 'button', disabled: active > 0 || busy === 'history', onClick: () => void clearHistory() }, busy === 'history' ? t('Clearing…') : t('Clear task & activity history')),
+      h('button', { className: 'secondary danger', type: 'button', disabled: busy === 'analytics', onClick: () => void clearAnalytics() }, t(busy === 'analytics' ? 'Clearing…' : 'Clear analytics')),
+      h('button', { className: 'secondary danger', type: 'button', disabled: busy === 'logs', onClick: () => void clearAppLog() }, t(busy === 'logs' ? 'Clearing…' : 'Clear app log')),
+      h('button', { className: 'secondary', type: 'button', disabled: busy === 'folder', onClick: () => void openFolder() }, busy === 'folder' ? t('Opening…') : t('Data folder'))
     ),
-    active > 0 ? h('p', { className: 'settings-help' }, `Finish the ${active === 1 ? 'active task' : `${active} active tasks`} before clearing local task data.`) : null
+    active > 0 ? h('p', { className: 'settings-help' }, active === 1 ? t('Finish the active task before clearing local task data.') : t`Finish the ${active} active tasks before clearing local task data.`) : null
   );
 }
 
@@ -962,8 +987,8 @@ function LogoutRow() {
     }
   };
   return h('div', { className: 'setting-row' },
-    h('div', { className: 'setting-row-copy' }, h('strong', null, 'Log out'), h('span', null, 'Disconnect the saved OpenAI tunnel from this Rel.AI installation. You can choose whether to keep local Rel.AI data when you log out.')),
-    h('button', { className: 'secondary settings-nowrap-action', type: 'button', disabled: busy, onClick: () => void logout() }, busy ? 'Logging out…' : 'Log out')
+    h('div', { className: 'setting-row-copy' }, h('strong', null, t('Log out')), h('span', null, t('Disconnect the saved OpenAI tunnel from this Rel.AI installation. You can choose whether to keep local Rel.AI data when you log out.'))),
+    h('button', { className: 'secondary settings-nowrap-action', type: 'button', disabled: busy, onClick: () => void logout() }, t(busy ? 'Logging out…' : 'Log out'))
   );
 }
 
@@ -978,7 +1003,7 @@ function requestLogoutChoice() {
       resolve(value);
     };
     modal = openModal({
-      title: 'Log out of Rel.AI',
+      title: t('Log out of Rel.AI'),
       content: h(LogoutChoice, { onCancel: () => settle(null), onConfirm: keepData => settle(keepData) }),
       size: 'standard',
       onClose: () => { if (!settled) { settled = true; resolve(null); } }
@@ -990,23 +1015,23 @@ function LogoutChoice({ onCancel, onConfirm }) {
   const [keepData, setKeepData] = useState(true);
   return h('div', { className: 'confirm-dialog' },
     h('div', { className: 'confirm-dialog-copy' },
-      h('strong', null, 'Log out of Rel.AI?'),
-      h('span', null, 'Logging out always removes the saved OpenAI tunnel connection from this installation.'),
+      h('strong', null, t('Log out of Rel.AI?')),
+      h('span', null, t('Logging out always removes the saved OpenAI tunnel connection from this installation.')),
       h('label', { className: 'toggle-control' },
         h('input', {
           type: 'checkbox',
           checked: keepData,
           onChange: event => setKeepData(event.currentTarget.checked)
         }),
-        h('span', null, 'Keep my local Rel.AI data')
+        h('span', null, t('Keep my local Rel.AI data'))
       ),
       h('span', null, keepData
-        ? 'Project configuration, task and activity history, analytics, repository indexes, caches, and app preferences will stay on this computer.'
-        : 'All Rel.AI-owned local data will be deleted before logout. Project folders and project files are never deleted.')
+        ? t('Project configuration, task and activity history, analytics, repository indexes, caches, and app preferences will stay on this computer.')
+        : t('All Rel.AI-owned local data will be deleted before logout. Project folders and project files are never deleted.'))
     ),
     h('div', { className: 'modal-actions' },
-      h('button', { type: 'button', className: 'secondary', onClick: onCancel }, 'Cancel'),
-      h('button', { type: 'button', className: keepData ? 'primary' : 'danger', onClick: () => onConfirm(keepData) }, 'Log out')
+      h('button', { type: 'button', className: 'secondary', onClick: onCancel }, t('Cancel')),
+      h('button', { type: 'button', className: keepData ? 'primary' : 'danger', onClick: () => onConfirm(keepData) }, t('Log out'))
     )
   );
 }
@@ -1019,8 +1044,8 @@ function QuitRow() {
     catch (error) { setBusy(false); toast(messageOf(error), { variant: 'error' }); }
   };
   return h('div', { className: 'setting-row' },
-    h('div', { className: 'setting-row-copy' }, h('strong', null, 'Quit Rel.AI MCP'), h('span', null, 'Stop the local connection and close Rel.AI completely.')),
-    h('button', { className: 'secondary', type: 'button', disabled: busy, onClick: () => void quit() }, busy ? 'Quitting…' : 'Quit Rel.AI MCP')
+    h('div', { className: 'setting-row-copy' }, h('strong', null, t('Quit Rel.AI MCP')), h('span', null, t('Stop the local connection and close Rel.AI completely.'))),
+    h('button', { className: 'secondary', type: 'button', disabled: busy, onClick: () => void quit() }, t(busy ? 'Quitting…' : 'Quit Rel.AI MCP'))
   );
 }
 
@@ -1037,7 +1062,7 @@ function AboutPage({ metadata, buildStatus = {}, runtime = {}, repositoryRuntime
     developerUnlockRef.current = next.unlocked ? { count: 0, startedAt: 0 } : next;
     if (!next.unlocked) return;
     unlockDeveloperOptions();
-    toast('Developer options unlocked. Choose the features you want to enable in App settings.', { variant: 'success' });
+    toast(t('Developer options unlocked. Choose the features you want to enable in App settings.'), { variant: 'success' });
   };
   const documentLink = (path, label) => {
     const href = repositoryDocumentUrl(repositoryUrl, path);
@@ -1046,12 +1071,12 @@ function AboutPage({ metadata, buildStatus = {}, runtime = {}, repositoryRuntime
       : h('span', { className: 'about-detail-value' }, label);
   };
   return h(React.Fragment, null,
-    h(SettingsHeader, { title: 'About Rel.AI', description: 'Rel.AI keeps your projects local and shares bounded tool results through your configured ChatGPT connection when a task needs them.' }),
-    h(Card, { title: 'Application information' },
+    h(SettingsHeader, { title: t('About Rel.AI'), description: t('Rel.AI keeps your projects local and shares bounded tool results through your configured ChatGPT connection when a task needs them.') }),
+    h(Card, { title: t('Application information') },
       h('div', { className: 'about-product' }, h('img', { src: '/public/assets/relai-logo.png', width: 193, height: 187, alt: '', 'aria-hidden': 'true' }), h('div', null,
         h('h4', null, metadata.name || 'Rel.AI MCP'),
-        h('p', null, `Version: ${metadata.version ? `v${metadata.version}` : 'Unknown version'}`),
-        buildId ? h('p', null, 'Build: ', h('button', {
+        h('p', null, t`Version: ${metadata.version ? `v${metadata.version}` : t('Unknown version')}`),
+        buildId ? h('p', null, t('Build: '), h('button', {
           className: 'about-build-trigger',
           type: 'button',
           onClick: onBuildClick,
@@ -1062,17 +1087,17 @@ function AboutPage({ metadata, buildStatus = {}, runtime = {}, repositoryRuntime
         h('strong', null, runtimeNotice.title),
         h('div', null, runtimeNotice.message)
       ) : null,
-      h(AboutRow, { label: 'Developer' }, h('span', { className: 'about-detail-value' }, 'Developed by ', developerUrl ? h('a', { className: 'settings-external-link about-detail-value', href: developerUrl, target: '_blank', rel: 'noopener noreferrer', 'aria-label': `${developer.name} on GitHub (@${developer.username})` }, developer.name) : developer.name, developer.username ? ` (@${developer.username})` : '')),
-      h(AboutRow, { label: 'Source code' }, repositoryUrl ? h('a', { className: 'settings-external-link about-detail-value', href: repositoryUrl, target: '_blank', rel: 'noopener noreferrer', 'aria-label': 'Rel.AI MCP source code on GitHub' }, repositoryLabel(repositoryUrl)) : h('span', { className: 'about-detail-value' }, metadata.repositoryUrl || '')),
-      h(AboutRow, { label: 'License' }, documentLink('LICENSE', String(metadata.license || 'Apache-2.0')))
+      h(AboutRow, { label: t('Developer') }, h('span', { className: 'about-detail-value' }, t('Developed by '), developerUrl ? h('a', { className: 'settings-external-link about-detail-value', href: developerUrl, target: '_blank', rel: 'noopener noreferrer', 'aria-label': t`${developer.name} on GitHub (@${developer.username})` }, developer.name) : developer.name, developer.username ? ` (@${developer.username})` : '')),
+      h(AboutRow, { label: t('Source code') }, repositoryUrl ? h('a', { className: 'settings-external-link about-detail-value', href: repositoryUrl, target: '_blank', rel: 'noopener noreferrer', 'aria-label': t('Rel.AI MCP source code on GitHub') }, repositoryLabel(repositoryUrl)) : h('span', { className: 'about-detail-value' }, metadata.repositoryUrl || '')),
+      h(AboutRow, { label: t('License') }, documentLink('LICENSE', String(metadata.license || 'Apache-2.0')))
     ),
-    h(Card, { title: 'Legal & privacy' },
-      h('p', { className: 'settings-help' }, 'These documents describe Rel.AI data handling, use of official project services, security reporting, and third-party software notices.'),
-      h(AboutRow, { label: 'Privacy' }, documentLink('PRIVACY.md', 'Privacy Policy')),
-      h(AboutRow, { label: 'Terms' }, documentLink('TERMS.md', 'Terms of Use')),
-      h(AboutRow, { label: 'Security' }, documentLink('SECURITY.md', 'Security Policy')),
-      h(AboutRow, { label: 'Third-party software' }, documentLink('THIRD_PARTY_NOTICES.md', 'Third-party notices')),
-      h(AboutRow, { label: 'Attribution' }, documentLink('NOTICE', 'NOTICE'))
+    h(Card, { title: t('Legal & privacy') },
+      h('p', { className: 'settings-help' }, t('These documents describe Rel.AI data handling, use of official project services, security reporting, and third-party software notices.')),
+      h(AboutRow, { label: t('Privacy') }, documentLink('PRIVACY.md', t('Privacy Policy'))),
+      h(AboutRow, { label: t('Terms') }, documentLink('TERMS.md', t('Terms of Use'))),
+      h(AboutRow, { label: t('Security') }, documentLink('SECURITY.md', t('Security Policy'))),
+      h(AboutRow, { label: t('Third-party software') }, documentLink('THIRD_PARTY_NOTICES.md', t('Third-party notices'))),
+      h(AboutRow, { label: t('Attribution') }, documentLink('NOTICE', 'NOTICE'))
     )
   );
 }
@@ -1088,12 +1113,12 @@ function runtimeCompatibilityNotice(runtime = {}, repositoryRuntime = {}, compat
   if (!runningVersion || !sourceVersion) return null;
   const activeTasksPreventRestart = compatibility?.activeTasksPreventRestart === true;
   const restartRequired = compatibility?.restartRequired === true;
-  const title = restartRequired ? 'Restart required to load current source' : 'Running runtime differs from current source';
+  const title = restartRequired ? t('Restart required to load current source') : t('Running runtime differs from current source');
   const message = activeTasksPreventRestart
-    ? `Rel.AI is running v${runningVersion} while this source tree is v${sourceVersion}. Finish active tasks before restarting Rel.AI to load the current source.`
+    ? t`Rel.AI is running v${runningVersion} while this source tree is v${sourceVersion}. Finish active tasks before restarting Rel.AI to load the current source.`
     : restartRequired
-      ? `Rel.AI is running v${runningVersion} while this source tree is v${sourceVersion}. Restart Rel.AI to load the current source and tool surface.`
-      : `Rel.AI is running v${runningVersion} while this source tree is v${sourceVersion}. The connected runtime remains compatible, but development observations may not match this source tree exactly.`;
+      ? t`Rel.AI is running v${runningVersion} while this source tree is v${sourceVersion}. Restart Rel.AI to load the current source and tool surface.`
+      : t`Rel.AI is running v${runningVersion} while this source tree is v${sourceVersion}. The connected runtime remains compatible, but development observations may not match this source tree exactly.`;
   return { title, message, runningVersion, sourceVersion };
 }
 
@@ -1125,7 +1150,7 @@ function repositoryDocumentUrl(repositoryUrl, filePath) {
 }
 function formatBytes(value, { zero = false } = {}) { let bytes = Number(value || 0); if (!Number.isFinite(bytes) || bytes < 0) bytes = 0; if (bytes === 0) return zero ? '0 B' : ''; const units = ['B', 'KB', 'MB', 'GB', 'TB']; let unit = 0; while (bytes >= 1024 && unit < units.length - 1) { bytes /= 1024; unit += 1; } return `${bytes >= 10 || unit === 0 ? bytes.toFixed(0) : bytes.toFixed(1)} ${units[unit]}`; }
 function normalizeReleaseNoteText(value) { return String(value || '').replace(/<\s*br\s*\/?\s*>/gi, '\n').replace(/<\s*li(?:\s[^>]*)?>/gi, '\n• ').replace(/<\s*\/\s*li\s*>/gi, '\n').replace(/<\s*\/?\s*(?:h[1-6]|p|div|ul|ol|section|article)(?:\s[^>]*)?>/gi, '\n').replace(/<[^>]*>/g, '').replace(/&nbsp;/gi, ' ').replace(/&amp;/gi, '&').replace(/&lt;/gi, '<').replace(/&gt;/gi, '>').replace(/&quot;/gi, '"').replace(/&#39;|&apos;/gi, "'").replace(/\r/g, '').replace(/[ \t]+\n/g, '\n').replace(/\n[ \t]+/g, '\n').replace(/\n{3,}/g, '\n\n').trim(); }
-function messageOf(error) { return error instanceof Error ? error.message : String(error || 'The operation failed.'); }
+function messageOf(error) { return error instanceof Error ? error.message : String(error || t('The operation failed.')); }
 function prefersReducedMotion() { return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true; }
 
 export { advanceDeveloperUnlockClicks, connectionGuideMode, connectionPrimaryAction, normalizeNotificationPreferences, normalizeReleaseNoteText, runtimeCompatibilityNotice, updateView };

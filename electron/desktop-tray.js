@@ -1,4 +1,6 @@
+import { importResourceModule } from './resource-path.js';
 
+const { t } = await importResourceModule('src/ui/i18n.js');
 
 function createDesktopTray(deps) {
   const {
@@ -43,17 +45,17 @@ function createDesktopTray(deps) {
     const status = getStatus();
     const updateInstalling = getUpdateStatus()?.state === 'installing';
     const menu = Menu.buildFromTemplate([
-      { label: status.serverRunning ? 'Rel.AI: running' : 'Rel.AI: stopped', enabled: false },
-      { label: `Connection: ${status.tunnelStatus || 'stopped'}`, enabled: false },
+      { label: status.serverRunning ? t('Rel.AI: running') : t('Rel.AI: stopped'), enabled: false },
+      { label: t`Connection: ${tunnelStateLabel(status.tunnelStatus)}`, enabled: false },
       { type: 'separator' },
-      { label: 'Open Dashboard', click: () => void openDashboard().catch(onError) },
+      { label: t('Open Dashboard'), click: () => void openDashboard().catch(onError) },
       {
-        label: 'Copy local MCP address',
+        label: t('Copy local MCP address'),
         enabled: Boolean(status.localMcpUrl) && !updateInstalling,
         click: () => { if (status.localMcpUrl) clipboard.writeText(status.localMcpUrl); }
       },
       {
-        label: status.serverRunning ? 'Stop Rel.AI' : 'Start Rel.AI',
+        label: status.serverRunning ? t('Stop Rel.AI') : t('Start Rel.AI'),
         enabled: !updateInstalling,
         click: () => status.serverRunning
           ? void Promise.resolve(stopServer()).catch(onError)
@@ -61,10 +63,10 @@ function createDesktopTray(deps) {
       },
       { type: 'separator' },
       updateMenuItem(),
-      { label: 'Troubleshooting', enabled: !updateInstalling, click: () => void openDiagnostics().catch(onError) },
-      { label: 'Settings', enabled: !updateInstalling, click: () => void openSettings().catch(onError) },
+      { label: t('Troubleshooting'), enabled: !updateInstalling, click: () => void openDiagnostics().catch(onError) },
+      { label: t('Settings'), enabled: !updateInstalling, click: () => void openSettings().catch(onError) },
       { type: 'separator' },
-      { label: 'Quit Rel.AI MCP', enabled: !updateInstalling, click: quit }
+      { label: t('Quit Rel.AI MCP'), enabled: !updateInstalling, click: quit }
     ]);
     tray.setContextMenu(menu);
     return true;
@@ -73,16 +75,16 @@ function createDesktopTray(deps) {
   function updateMenuItem() {
     const status = getUpdateStatus() || {};
     const version = status.availableVersion ? ` v${status.availableVersion}` : '';
-    if (status.state === 'checking') return { label: 'Checking for updates…', enabled: false };
-    if (status.state === 'downloading') return { label: `Downloading update… ${Math.round(status.progress?.percent || 0)}%`, enabled: false };
-    if (status.state === 'installing') return { label: 'Installing update…', enabled: false };
+    if (status.state === 'checking') return { label: t('Checking for updates…'), enabled: false };
+    if (status.state === 'downloading') return { label: t`Downloading update… ${Math.round(status.progress?.percent || 0)}%`, enabled: false };
+    if (status.state === 'installing') return { label: t('Installing update…'), enabled: false };
     if (status.state === 'downloaded') {
-      const label = status.installMode === 'open_dmg' ? `Open update DMG${version}` : `Install update${version}`;
+      const label = status.installMode === 'open_dmg' ? t`Open update DMG${version}` : t`Install update${version}`;
       return { label, click: () => runUpdateAction(installUpdate) };
     }
-    if (status.state === 'available') return { label: `Download update${version}`, click: () => runUpdateAction(downloadUpdate) };
-    if (status.state === 'unsupported') return { label: 'Updates require the installed app', enabled: false };
-    return { label: 'Check for updates', click: () => runUpdateAction(checkForUpdates) };
+    if (status.state === 'available') return { label: t`Download update${version}`, click: () => runUpdateAction(downloadUpdate) };
+    if (status.state === 'unsupported') return { label: t('Updates require the installed app'), enabled: false };
+    return { label: t('Check for updates'), click: () => runUpdateAction(checkForUpdates) };
   }
 
   function runUpdateAction(action) {
@@ -127,6 +129,21 @@ function createDesktopTray(deps) {
   }
 
   return { setup, update, showBalloon, destroy, isAvailable: () => Boolean(tray) };
+}
+
+function tunnelStateLabel(status) {
+  switch (status) {
+    case 'running': return t('Connected');
+    case 'degraded': return t('Reconnecting');
+    case 'authenticating': return t('Authenticating');
+    case 'starting':
+    case 'locally_ready':
+    case 'connecting': return t('Connecting');
+    case 'failed': return t('Failed');
+    case 'stopped':
+    case undefined: return t('Stopped');
+    default: return status;
+  }
 }
 
 export { createDesktopTray };

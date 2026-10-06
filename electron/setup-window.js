@@ -2,9 +2,12 @@ import { fitWindowToContent, WINDOW_SIZE_LIMITS } from './window-size.js';
 import { installLocalProtocol, localRendererUrl } from './local-protocol.js';
 import { localWindowWebPreferences, secureLocalWindow } from './window-security.js';
 import { STARTUP_BACKGROUND_COLOR } from './startup-background.js';
+import { importResourceModule } from './resource-path.js';
+
+const { t } = await importResourceModule('src/ui/i18n.js');
 
 function createSetupWindowManager(deps) {
-  const { BrowserWindow, iconPath = '', preloadPath, rendererRoot, runtimeLogs, isQuitting, recoveryWindowManager } = deps;
+  const { BrowserWindow, iconPath = '', preloadPath, rendererRoot, runtimeLogs, isQuitting, recoveryWindowManager, getLanguagePreference = () => 'system' } = deps;
   let window = null;
   let recoveryMode = false;
   let updateMode = false;
@@ -29,6 +32,7 @@ function createSetupWindowManager(deps) {
       : updateMode
         ? { update: '1', previousVersion: updateVersions.previousVersion, currentVersion: updateVersions.currentVersion }
         : {};
+    query.language = getLanguagePreference();
     const rendererUrl = localRendererUrl('wizard.html', query);
     window = new BrowserWindow({
       width: WINDOW_SIZE_LIMITS.wizard.minWidth,
@@ -40,7 +44,7 @@ function createSetupWindowManager(deps) {
       useContentSize: true,
       webPreferences: localWindowWebPreferences(preloadPath, 'relai-setup', 'application'),
       backgroundColor: STARTUP_BACKGROUND_COLOR,
-      title: recoveryMode ? 'Rel.AI MCP - Connection Recovery' : updateMode ? 'Rel.AI MCP - Update' : 'Rel.AI MCP - Setup',
+      title: recoveryMode ? t('Rel.AI MCP - Connection Recovery') : updateMode ? t('Rel.AI MCP - Update') : t('Rel.AI MCP - Setup'),
       icon: iconPath || undefined,
       autoHideMenuBar: true
     });

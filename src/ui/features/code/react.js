@@ -1,5 +1,7 @@
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from '../../components/toast.js';
+import { t } from '../../i18n.js';
+import { useUiLanguage } from '../../i18n-react.js';
 import { Icon } from '../../components/icons.js';
 import { getRouteParams, replaceRouteParams, routeHref } from '../../router.js';
 import { classifyTaskChangedFiles } from '../../../taskSemanticProgress.js';
@@ -16,8 +18,9 @@ export function createCodeRoute(useDashboardSlices) {
 }
 
 function ChangesRoute({ data = {} }) {
+  const language = useUiLanguage();
   const bridge = window.relaiDesktop?.codeWorkspace;
-  const tasks = useMemo(() => codeTasks(data), [data.tasks]);
+  const tasks = useMemo(() => codeTasks(data), [data.tasks, language]);
 
   if (!bridge) return h(DesktopOnlyState);
   if (!tasks.length) return h(EmptyChangesState);
@@ -30,6 +33,7 @@ function ChangesRoute({ data = {} }) {
 }
 
 function ChangesDesktop({ bridge, taskRevision, taskSource, tasks }) {
+  useUiLanguage();
   const { selectedTaskId, selectTask } = useRouteTaskId(tasks);
   const selectedTask = tasks.find(task => task.id === selectedTaskId) || null;
   const [workspace, setWorkspace] = useState(null);
@@ -169,7 +173,7 @@ function ChangesDesktop({ bridge, taskRevision, taskSource, tasks }) {
     setOpeningIde(true);
     try {
       const result = await bridge.openIde(selectedTaskId, editorId);
-      toast(`Opened this project in ${result?.editor?.label || 'the selected application'}.`, { variant: 'success' });
+      toast(t`Opened this project in ${result?.editor?.label || t('the selected application')}.`, { variant: 'success' });
     } catch (error) {
       toast(messageFor(error), { variant: 'error' });
     } finally {
@@ -186,7 +190,7 @@ function ChangesDesktop({ bridge, taskRevision, taskSource, tasks }) {
   return h('div', { className: 'section code-page', 'data-code-react': '' },
     h('div', { className: 'feature-toolbar code-toolbar' },
       h('div', { className: 'code-task-control' },
-        h('label', { htmlFor: 'codeTaskSelect' }, 'Task'),
+        h('label', { htmlFor: 'codeTaskSelect' }, t('Task')),
         h('select', {
           id: 'codeTaskSelect',
           'data-code-task': '',
@@ -199,16 +203,16 @@ function ChangesDesktop({ bridge, taskRevision, taskSource, tasks }) {
           className: 'buttonlike secondary',
           'data-code-task-link': '',
           href: routeHref('tasks', { workspace: selectedTask?.workspace, task: selectedTaskId })
-        }, h(Icon, { name: 'chevronLeft' }), h('span', null, 'Task')),
+        }, h(Icon, { name: 'chevronLeft' }), h('span', null, t('Task'))),
         h('select', {
           'data-code-ide': '',
-          'aria-label': 'Application for project',
+          'aria-label': t('Application for project'),
           value: editorId,
           onChange: event => setEditorId(event.target.value)
         }, editorLoadFailed
-          ? h('option', { value: '' }, 'IDE unavailable')
+          ? h('option', { value: '' }, t('IDE unavailable'))
           : editors == null
-            ? h('option', { value: '' }, 'Loading applications…')
+            ? h('option', { value: '' }, t('Loading applications…'))
             : editors.map(editor => h('option', { key: editor.id, value: editor.id }, editor.label))),
         h('button', {
           className: 'secondary',
@@ -216,25 +220,25 @@ function ChangesDesktop({ bridge, taskRevision, taskSource, tasks }) {
           'data-code-open-ide': '',
           disabled: ideDisabled,
           onClick: () => { void openIde(); }
-        }, h(Icon, { name: 'externalLink' }), h('span', null, openingIde ? 'Opening…' : 'IDE')),
+        }, h(Icon, { name: 'externalLink' }), h('span', null, openingIde ? t('Opening…') : 'IDE')),
         h('button', {
           className: 'secondary',
           type: 'button',
           'data-code-refresh': '',
           onClick: () => { void refreshWorkspace(selectedTaskId, { refreshCurrent: true }); }
-        }, 'Refresh')
+        }, t('Refresh'))
       )
     ),
-    h('div', { className: 'code-workspace-meta', 'data-code-meta': '' }, meta),
+    h('div', { className: 'code-workspace-meta', 'data-code-meta': '' }, t(meta)),
     h('div', { className: 'code-workbench' },
-      h('aside', { className: 'code-explorer', 'aria-label': 'Changed task files' },
+      h('aside', { className: 'code-explorer', 'aria-label': t('Changed task files') },
         h('div', { className: 'code-explorer-head' },
-          h('strong', null, 'Changed files'),
+          h('strong', null, t('Changed files')),
           h('input', {
             type: 'search',
             'data-code-search': '',
-            placeholder: 'Filter changed files',
-            'aria-label': 'Filter changed task files',
+            placeholder: t('Filter changed files'),
+            'aria-label': t('Filter changed task files'),
             value: query,
             onChange: event => setQuery(event.target.value)
           })
@@ -243,7 +247,7 @@ function ChangesDesktop({ bridge, taskRevision, taskSource, tasks }) {
           visibleFiles.length
             ? visibleFiles.map(file => {
                 const status = changedFileStatus(workspace, file);
-                const label = `${status.label}: ${file}`;
+                const label = `${t(status.label)}: ${file}`;
                 return h('button', {
                   className: `code-file-row${file === filePath ? ' active' : ''}`,
                   type: 'button',
@@ -259,12 +263,12 @@ function ChangesDesktop({ bridge, taskRevision, taskSource, tasks }) {
                 }, status.code),
                 h('span', { className: 'code-file-name' }, file));
               })
-            : h('div', { className: 'code-file-empty' }, query ? 'No matching changed files.' : (workspaceError ? 'Task changes are unavailable.' : 'No task-owned changes to review.'))
+            : h('div', { className: 'code-file-empty' }, query ? t('No matching changed files.') : (workspaceError ? t('Task changes are unavailable.') : t('No task-owned changes to review.')))
         )
       ),
-      h('section', { className: 'code-editor-pane', 'aria-label': 'Task diff viewer' },
+      h('section', { className: 'code-editor-pane', 'aria-label': t('Task diff viewer') },
         h('div', { className: 'code-editor-toolbar' },
-          h('div', { className: 'code-file-heading mono', 'data-code-file-heading': '' }, filePath || 'No file selected'),
+          h('div', { className: 'code-file-heading mono', 'data-code-file-heading': '' }, filePath || t('No file selected')),
           h('span', { className: 'code-view-state', 'data-code-view-state': '' }, viewState)
         ),
         h(DiffViewer, { file: diffFile, message: viewerMessage, tone: viewerTone })
@@ -278,12 +282,13 @@ function DiffViewer({ file, message, tone }) {
     return h('div', {
       className: `code-editor-host code-editor-message${tone ? ` ${tone}` : ''}`,
       'data-code-editor': ''
-    }, message || 'Choose a changed file to review its diff.');
+    }, t(message) || t('Choose a changed file to review its diff.'));
   }
   return h(MonacoDiffViewer, { file });
 }
 
 const MonacoDiffViewer = memo(function MonacoDiffViewer({ file }) {
+  useUiLanguage();
   const hostRef = useRef(null);
   const editorRef = useRef(null);
   const monacoRef = useRef(null);
@@ -322,7 +327,7 @@ const MonacoDiffViewer = memo(function MonacoDiffViewer({ file }) {
       if (!active) return;
       const message = messageFor(error);
       setLoadError(message);
-      toast(`Monaco could not start. Showing a read-only text diff fallback. ${message}`, { variant: 'warn' });
+      toast(t`Monaco could not start. Showing a read-only text diff fallback. ${message}`, { variant: 'warn' });
     });
 
     return () => {
@@ -348,14 +353,14 @@ const MonacoDiffViewer = memo(function MonacoDiffViewer({ file }) {
     ref: hostRef,
     className: 'code-editor-host',
     'data-code-editor': '',
-    'aria-label': 'Read-only file diff'
+    'aria-label': t('Read-only file diff')
   });
 });
 
 function DiffFallback({ file }) {
   return h('div', { className: 'code-diff-fallback' },
-    h(FallbackColumn, { label: 'Before', content: file?.baseContent || '' }),
-    h(FallbackColumn, { label: 'After', content: file?.content || '' })
+    h(FallbackColumn, { label: t('Before'), content: file?.baseContent || '' }),
+    h(FallbackColumn, { label: t('After'), content: file?.content || '' })
   );
 }
 
@@ -468,9 +473,9 @@ function taskId(task) {
 }
 
 function taskLabel(task) {
-  const title = String(task?.title || task?.objective || task?.summary || 'Untitled task').trim();
+  const title = String(task?.title || task?.objective || task?.summary || t('Untitled task')).trim();
   const workspace = String(task?.workspace || '').trim();
-  const status = String(task?.status || '').trim();
+  const status = t(String(task?.status || '').trim());
   return [title, workspace, status].filter(Boolean).join(' · ');
 }
 
@@ -490,18 +495,18 @@ function changedFileStatus(workspace = {}, file = '') {
 }
 
 function workspaceMeta(workspace, error) {
-  if (error) return 'Task changes unavailable';
-  if (!workspace) return 'Loading task changes…';
-  const parts = [workspace.workspace || 'Project'];
-  if (workspace.status) parts.push(humanizeStatus(workspace.status));
+  if (error) return t('Task changes unavailable');
+  if (!workspace) return t('Loading task changes…');
+  const parts = [workspace.workspace || t('Project')];
+  if (workspace.status) parts.push(t(humanizeStatus(workspace.status)));
   if (workspace.historyMode === 'committed') {
     const head = shortCommit(workspace.commitHead);
-    parts.push(head ? `Committed changes · ${head}` : 'Committed changes');
-    if (workspace.commitSource === 'inferred') parts.push('Recovered from Git history');
+    parts.push(head ? t`Committed changes · ${head}` : t('Committed changes'));
+    if (workspace.commitSource === 'inferred') parts.push(t('Recovered from Git history'));
   } else if (workspace.historyMode === 'unavailable') {
-    parts.push('Historical diff unavailable');
+    parts.push(t('Historical diff unavailable'));
   } else {
-    parts.push('Current task changes');
+    parts.push(t('Current task changes'));
   }
   return parts.join(' · ');
 }
@@ -524,16 +529,16 @@ function shortCommit(value) {
 }
 
 function messageFor(error) {
-  return error instanceof Error ? error.message : String(error || 'The changes viewer request failed.');
+  return error instanceof Error ? error.message : String(error || t('The changes viewer request failed.'));
 }
 
 function DesktopOnlyState() {
   return h('div', { className: 'section code-page', 'data-code-react': '' },
     h('div', { className: 'dashboard-state' },
       h('div', { className: 'dashboard-state-card' },
-        h('span', { className: 'status-pill warn' }, 'Desktop feature'),
-        h('h2', null, 'Open Changes in the Rel.AI desktop app.'),
-        h('p', null, 'The browser dashboard cannot access local task diffs or IDEs.')
+        h('span', { className: 'status-pill warn' }, t('Desktop feature')),
+        h('h2', null, t('Open Changes in the Rel.AI desktop app.')),
+        h('p', null, t('The browser dashboard cannot access local task diffs or IDEs.'))
       )
     )
   );
@@ -543,11 +548,11 @@ function EmptyChangesState() {
   return h('div', { className: 'section code-page', 'data-code-react': '' },
     h('div', { className: 'dashboard-state' },
       h('div', { className: 'dashboard-state-card' },
-        h('h2', null, 'No task changes are available.'),
-        h('p', null, 'Start a Rel.AI task, then return here to review what changed.'),
+        h('h2', null, t('No task changes are available.')),
+        h('p', null, t('Start a Rel.AI task, then return here to review what changed.')),
         h('div', { className: 'dashboard-state-actions' },
           h('a', { className: 'buttonlike primary', href: '#tasks' },
-            h('span', null, 'Tasks'), h(Icon, { name: 'chevronRight' })
+            h('span', null, t('Tasks')), h(Icon, { name: 'chevronRight' })
           )
         )
       )
@@ -561,7 +566,7 @@ function loadMonaco() {
   monacoPromise = new Promise((resolve, reject) => {
     const start = () => {
       if (typeof window.require !== 'function') {
-        reject(new Error('Monaco loader did not initialize.'));
+        reject(new Error(t('Monaco loader did not initialize.')));
         return;
       }
       window.MonacoEnvironment = {
@@ -589,7 +594,7 @@ function loadMonaco() {
     script.src = '/vendor/monaco/loader.js';
     script.dataset.monacoLoader = 'true';
     script.addEventListener('load', start, { once: true });
-    script.addEventListener('error', () => reject(new Error('Monaco editor assets could not load.')), { once: true });
+    script.addEventListener('error', () => reject(new Error(t('Monaco editor assets could not load.'))), { once: true });
     document.head.appendChild(script);
   });
   return monacoPromise;

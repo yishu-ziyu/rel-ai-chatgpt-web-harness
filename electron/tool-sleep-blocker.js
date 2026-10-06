@@ -1,4 +1,6 @@
+import { importResourceModule } from './resource-path.js';
 
+const { t } = await importResourceModule('src/ui/i18n.js');
 
 const NOTIFICATION_BODY_LIMIT = 260;
 const NOTIFICATION_SUMMARY_LIMIT = 150;
@@ -15,12 +17,12 @@ function truncateNotificationText(value, limit) {
 }
 
 function buildFailureNotification(event = {}) {
-  const operation = truncateNotificationText(event.operation || event.tool || 'Project action', 80);
+  const operation = truncateNotificationText(event.operation || event.tool || t('Project action'), 80);
   const workspace = truncateNotificationText(event.workspace, 64);
-  const location = workspace ? ` in ${workspace}` : '';
+  const location = workspace ? t` in ${workspace}` : '';
   return {
-    title: 'Project action failed',
-    body: truncateNotificationText(`${operation} failed${location}. Open Rel.AI for details and recovery options.`, NOTIFICATION_BODY_LIMIT)
+    title: t('Project action failed'),
+    body: truncateNotificationText(t`${operation} failed${location}. Open Rel.AI for details and recovery options.`, NOTIFICATION_BODY_LIMIT)
   };
 }
 
@@ -28,11 +30,11 @@ function buildCompletionNotification(task = {}) {
   const summary = truncateNotificationText(task.summary, NOTIFICATION_SUMMARY_LIMIT);
   const workspace = truncateNotificationText(task.workspace, 64);
   const validationLevel = truncateNotificationText(task.validationLevel, 24).toLowerCase();
-  const parts = [summary || 'The coding task completed successfully.'];
-  if (workspace) parts.push(`Project: ${workspace}.`);
-  parts.push(validationLevel ? `Final ${validationLevel} checks passed.` : 'Final checks passed.');
+  const parts = [summary || t('The coding task completed successfully.')];
+  if (workspace) parts.push(t`Project: ${workspace}.`);
+  parts.push(validationLevel ? t`Final ${validationLevel} checks passed.` : t('Final checks passed.'));
   return {
-    title: 'Task completed',
+    title: t('Task completed'),
     body: truncateNotificationText(parts.join(' '), NOTIFICATION_BODY_LIMIT)
   };
 }

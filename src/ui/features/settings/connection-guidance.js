@@ -1,3 +1,5 @@
+import { t } from '../../i18n.js';
+
 export const CHATGPT_CONNECTOR_CREATE_URL = 'https://chatgpt.com/plugins#settings/Connectors?create-connector=true';
 export const RELAI_CONNECTOR_ICON_URL = '/assets/favicon.png';
 export const RELAI_CONNECTOR_ICON_FILENAME = 'relai-mcp.png';
@@ -28,21 +30,21 @@ export function chatGptGuideSteps({ mode = 'create', tunnelId = '' } = {}) {
   const name = 'Rel.AI MCP';
   if (mode === 'reconnect') {
     return [
-      'Keep Rel.AI running. Confirm that the Secure MCP Tunnel shows Connected on the Connection page.',
-      'If you changed ChatGPT accounts or workspaces, sign in to the workspace that you want to use.',
-      `If “${name}” already exists in that workspace, open it instead of creating a duplicate.`,
-      tunnel ? `Set Connection to Tunnel and select ${tunnel}.` : 'Set Connection to Tunnel and select this computer’s Secure MCP Tunnel.',
-      'Set Authentication to No authentication.',
-      `If “${name}” does not exist in that workspace, create it once with these settings.`,
-      `Enable “${name}” in the chat. Retry the request.`
+      t('Keep Rel.AI running. Confirm that the Secure MCP Tunnel shows Connected on the Connection page.'),
+      t('If you changed ChatGPT accounts or workspaces, sign in to the workspace that you want to use.'),
+      t`If “${name}” already exists in that workspace, open it instead of creating a duplicate.`,
+      tunnel ? t`Set Connection to Tunnel and select ${tunnel}.` : t('Set Connection to Tunnel and select this computer’s Secure MCP Tunnel.'),
+      t('Set Authentication to No authentication.'),
+      t`If “${name}” does not exist in that workspace, create it once with these settings.`,
+      t`Enable “${name}” in the chat. Retry the request.`
     ];
   }
   return [
-    'Open ChatGPT connector setup.',
-    tunnel ? `Set Name to “${name}”. Set Connection to Tunnel. Select ${tunnel}. Set Authentication to No authentication.` : `Set Name to “${name}”. Set Connection to Tunnel. Select this computer’s tunnel. Set Authentication to No authentication.`,
-    'Click Scan Tools. Confirm that the Rel.AI tools appear. Then click Create.',
-    `Enable “${name}” in the chat.`,
-    `Optional: Open Manage and upload ${RELAI_CONNECTOR_ICON_FILENAME} as the connector logo.`
+    t('Open ChatGPT connector setup.'),
+    tunnel ? t`Set Name to “${name}”. Set Connection to Tunnel. Select ${tunnel}. Set Authentication to No authentication.` : t`Set Name to “${name}”. Set Connection to Tunnel. Select this computer’s tunnel. Set Authentication to No authentication.`,
+    t('Click Scan Tools. Confirm that the Rel.AI tools appear. Then click Create.'),
+    t`Enable “${name}” in the chat.`,
+    t`Optional: Open Manage and upload ${RELAI_CONNECTOR_ICON_FILENAME} as the connector logo.`
   ];
 }
 

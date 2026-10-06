@@ -4,6 +4,8 @@ import { pillClass } from '../../components/pill.js';
 import { statusTone } from '../../status-tone.js';
 import { toast } from '../../components/toast.js';
 import { postJson } from '../../api.js';
+import { t } from '../../i18n.js';
+import { useUiLanguage } from '../../i18n-react.js';
 import { getRouteParams, getWorkspaceFilter, replaceRouteParams, routeHref } from '../../router.js';
 import { analyticsRangeScope } from '../usage/range-model.js';
 import { loadAnalyticsModels } from '../usage/data.js';
@@ -28,6 +30,7 @@ export function createWorkspacesRoute(useDashboardSlices) {
 }
 
 function WorkspacesView({ data = {} }) {
+  useUiLanguage();
   const allWorkspaces = Array.isArray(data.config?.workspaces) ? data.config.workspaces : [];
   const workspaceFilter = getWorkspaceFilter();
   const routeParams = getRouteParams();
@@ -83,30 +86,30 @@ function WorkspacesView({ data = {} }) {
 
   return h('div', { className: 'section', 'data-workspaces-react': '' },
     h('div', { className: 'feature-toolbar workspace-toolbar' },
-      h('p', null, 'See each project’s status and common actions.'),
+      h('p', null, t('See each project’s status and common actions.')),
       h('div', { className: 'section-head-actions' },
         workspaceFilter ? h('a', {
           className: 'buttonlike secondary compact-button workspace-focus-chip',
           href: '#workspaces',
-          'aria-label': `Clear selected project filter: ${workspaceFilter}`,
-          title: 'Show all projects'
+          'aria-label': t`Clear selected project filter: ${workspaceFilter}`,
+          title: t('Show all projects')
         }, h('span', null, workspaceFilter), h(Icon, { name: 'close', size: 14 })) : null,
-        h('span', { className: 'feature-count' }, `${allWorkspaces.length} project${allWorkspaces.length === 1 ? '' : 's'}`),
-        h('button', { className: 'primary', type: 'button', onClick: event => openForm('add', null, event.currentTarget) }, 'Add project')
+        h('span', { className: 'feature-count' }, allWorkspaces.length === 1 ? t`${allWorkspaces.length} project` : t`${allWorkspaces.length} projects`),
+        h('button', { className: 'primary', type: 'button', onClick: event => openForm('add', null, event.currentTarget) }, t('Add project'))
       )
     ),
     !workspaces.length ? h(EmptyWorkspaceState, { onAdd: event => openForm('add', null, event.currentTarget) }) : h(React.Fragment, null,
       h('div', { className: 'overview-grid overview-grid-compact summary-metrics overview-grid-two' },
         h(Metric, {
-          label: 'Ready for ChatGPT',
+          label: t('Ready for ChatGPT'),
           value: `${availableCount}/${workspaces.length}`,
-          meta: availableCount === workspaces.length ? 'All project folders are available' : 'One or more project folders need attention',
+          meta: t(availableCount === workspaces.length ? 'All project folders are available' : 'One or more project folders need attention'),
           tone: availableCount === workspaces.length ? 'good' : 'warn'
         }),
         h(Metric, {
-          label: 'Needs attention',
+          label: t('Needs attention'),
           value: findings.length,
-          meta: findings.length ? 'Problems that may affect a project' : 'No blocking problems',
+          meta: t(findings.length ? 'Problems that may affect a project' : 'No blocking problems'),
           tone: findings.length ? 'bad' : 'good'
         })
       ),
@@ -145,17 +148,18 @@ function WorkspacesView({ data = {} }) {
 }
 
 const WorkspaceCard = memo(function WorkspaceCard({ analytics, analyticsStatus, view, workspace, onEdit, onRepair }) {
+  useUiLanguage();
   const [folderBusy, setFolderBusy] = useState(false);
   const repository = repositorySummary(view.operational);
   const notices = [];
-  if (view.sessionActive) notices.push(view.taskHint ? `Active session: ${view.taskHint}` : 'Active editing session');
-  if (view.cautionCount > 0) notices.push(`${view.cautionCount} protected configuration change${view.cautionCount === 1 ? '' : 's'} recorded`);
+  if (view.sessionActive) notices.push(view.taskHint ? t`Active session: ${view.taskHint}` : t('Active editing session'));
+  if (view.cautionCount > 0) notices.push(view.cautionCount === 1 ? t`${view.cautionCount} protected configuration change recorded` : t`${view.cautionCount} protected configuration changes recorded`);
   const openFolder = async event => {
     if (folderBusy) return;
     setFolderBusy(true);
     const result = await postJson('/api/open-folder', { workspace: view.alias });
     setFolderBusy(false);
-    if (result?.ok === false) toast(result.error || 'Folder opening is only available in the desktop app.', { variant: 'warn' });
+    if (result?.ok === false) toast(result.error || t('Folder opening is only available in the desktop app.'), { variant: 'warn' });
     event.currentTarget?.focus?.();
   };
   return h('article', { className: 'workspace-card workspace-card-detailed', 'data-workspace-card': view.alias },
@@ -167,42 +171,47 @@ const WorkspaceCard = memo(function WorkspaceCard({ analytics, analyticsStatus, 
       h(StatusPill, { label: view.statusLabel })
     ),
     view.healthWarning ? h('div', { className: 'workspace-warning' },
-      h('span', null, view.healthWarning),
-      h('button', { className: 'secondary', type: 'button', onClick: event => onRepair(workspace, event.currentTarget) }, 'Fix folder')
+      h('span', null, t(view.healthWarning)),
+      h('button', { className: 'secondary', type: 'button', onClick: event => onRepair(workspace, event.currentTarget) }, t('Fix folder'))
     ) : null,
-    h(WorkspaceReadiness, { available: view.available, repository }),
+    h(WorkspaceReadiness, { available: view.available, operational: view.operational, repository }),
     notices.length ? h('div', { className: 'workspace-notice' }, notices.map(item => h('span', { key: item }, item))) : null,
     analytics
       ? h(WorkspaceAnalytics, { scope: analytics })
       : analyticsStatus === 'loading'
-        ? h(WorkspaceAnalyticsState, { label: 'Loading analytics…', loading: true })
+        ? h(WorkspaceAnalyticsState, { label: t('Loading analytics…'), loading: true })
         : analyticsStatus === 'error'
-          ? h(WorkspaceAnalyticsState, { label: 'Analytics unavailable' })
+          ? h(WorkspaceAnalyticsState, { label: t('Analytics unavailable') })
           : null,
     h('footer', { className: 'workspace-actions workspace-primary-actions' },
       document.documentElement.dataset.surface === 'desktop' ? h('button', {
         className: 'secondary', type: 'button', disabled: folderBusy, onClick: event => { void openFolder(event); }
-      }, h(CanonicalIcon, { name: 'folder' }), h('span', null, folderBusy ? 'Opening…' : 'Project folder')) : null,
-      h('button', { type: 'button', onClick: event => onEdit('edit', workspace, event.currentTarget) }, 'Edit project'),
-      h('a', { className: 'buttonlike secondary', href: routeHref('usage', { workspace: view.alias }) }, 'Analytics')
+      }, h(CanonicalIcon, { name: 'folder' }), h('span', null, folderBusy ? t('Opening…') : t('Project folder'))) : null,
+      h('button', { type: 'button', onClick: event => onEdit('edit', workspace, event.currentTarget) }, t('Edit project')),
+      h('a', { className: 'buttonlike secondary', href: routeHref('usage', { workspace: view.alias }) }, t('Analytics'))
     )
   );
 });
 
-function WorkspaceReadiness({ available, repository }) {
-  return h('section', { className: `workspace-readiness${available ? ' compact good' : ' bad'}`, 'aria-label': 'Project status' },
+function WorkspaceReadiness({ available, operational, repository }) {
+  return h('section', { className: `workspace-readiness${available ? ' compact good' : ' bad'}`, 'aria-label': t('Project status') },
     available ? null : h('div', { className: 'workspace-access-summary' },
       h('span', { className: 'workspace-readiness-icon', 'aria-hidden': 'true' }, h(Icon, { name: 'warning', size: 16 })),
       h('div', { className: 'workspace-readiness-copy' },
-        h('span', { className: 'workspace-readiness-kicker' }, 'Project access'),
-        h('strong', null, 'Project folder unavailable'),
-        h('p', null, 'Fix the project folder before using this project.')
+        h('span', { className: 'workspace-readiness-kicker' }, t('Project access')),
+        h('strong', null, t('Project folder unavailable')),
+        h('p', null, t('Fix the project folder before using this project.'))
       )
     ),
     h('dl', { className: 'workspace-readiness-facts' },
       h('div', { className: `workspace-readiness-fact ${repository.tone}` },
-        h('dt', null, h('i', { 'aria-hidden': 'true' }), repository.kindLabel),
-        h('dd', null, h('strong', null, repository.label), h('small', null, repository.description))
+        h('dt', null, h('i', { 'aria-hidden': 'true' }), t(repository.kindLabel)),
+        h('dd', null, h('strong', null, operational.isGit && operational.branch ? repository.label : t(repository.label)), h('small', null,
+          operational.isGit && operational.dirty
+            ? Number(operational.changedFileCount || 0) === 1
+              ? t`${Number(operational.changedFileCount || 0)} changed file`
+              : t`${Number(operational.changedFileCount || 0)} changed files`
+            : t(repository.description)))
       )
     )
   );
@@ -210,12 +219,12 @@ function WorkspaceReadiness({ available, repository }) {
 
 function HealthFindings({ findings, workspaces, onDelete, onRepair }) {
   return h('section', { className: 'card' },
-    h('div', { className: 'card-head' }, h('h3', null, 'Needs attention'), h('a', { className: 'section-action', href: '#diagnostics' }, 'Troubleshoot')),
+    h('div', { className: 'card-head' }, h('h3', null, t('Needs attention')), h('a', { className: 'section-action', href: '#diagnostics' }, t('Troubleshoot'))),
     h('div', { className: 'card-body list' }, findings.map((finding, index) => {
       const alias = finding.workspace || '';
       const actionable = finding.code === 'workspace_unavailable' && alias;
-      const title = finding.message || humanizeFindingCode(finding.code) || 'Project needs attention';
-      const context = alias ? `Project: ${alias}` : 'Open Troubleshooting for details.';
+      const title = finding.message || humanizeFindingCode(finding.code) || t('Project needs attention');
+      const context = alias ? t`Project: ${alias}` : t('Open Troubleshooting for details.');
       const content = h(React.Fragment, null,
         h('span', { className: `dot ${findingDotClass(finding.severity)}` }),
         h('div', { className: 'finding-main' }, h('div', { className: 'item-title' }, title), h('div', { className: 'item-sub' }, context))
@@ -225,14 +234,14 @@ function HealthFindings({ findings, workspaces, onDelete, onRepair }) {
         return h('div', { className: 'list-item finding-row', key: `${finding.code}-${alias}-${index}` },
           content,
           h('div', { className: 'finding-actions' },
-            h('button', { className: 'secondary', type: 'button', onClick: event => onRepair(workspace, event.currentTarget) }, 'Fix folder'),
-            h('button', { className: 'secondary danger', type: 'button', onClick: event => onDelete(alias, event.currentTarget) }, 'Remove')
+            h('button', { className: 'secondary', type: 'button', onClick: event => onRepair(workspace, event.currentTarget) }, t('Fix folder')),
+            h('button', { className: 'secondary danger', type: 'button', onClick: event => onDelete(alias, event.currentTarget) }, t('Remove'))
           )
         );
       }
       return h('a', { className: 'list-item finding-link', href: '#diagnostics', key: `${finding.code}-${index}` },
         content,
-        h('div', { className: 'item-time' }, h(StatusPill, { label: findingSeverityLabel(finding.severity), tone: findingDotClass(finding.severity) }))
+        h('div', { className: 'item-time' }, h(StatusPill, { label: t(findingSeverityLabel(finding.severity)), tone: findingDotClass(finding.severity) }))
       );
     }))
   );
@@ -241,9 +250,9 @@ function HealthFindings({ findings, workspaces, onDelete, onRepair }) {
 function EmptyWorkspaceState({ onAdd }) {
   return h('section', { className: 'workspace-empty-state' },
     h('div', { className: 'workspace-empty-mark', 'aria-hidden': 'true' }, h(Icon, { name: 'add', size: 24 })),
-    h('strong', null, 'Add your first project'),
-    h('p', null, 'Select a local folder and give it a short name. Rel.AI detects Git features and available checks when they are present.'),
-    h('button', { className: 'primary', type: 'button', onClick: onAdd }, 'Add project')
+    h('strong', null, t('Add your first project')),
+    h('p', null, t('Select a local folder and give it a short name. Rel.AI detects Git features and available checks when they are present.')),
+    h('button', { className: 'primary', type: 'button', onClick: onAdd }, t('Add project'))
   );
 }
 
@@ -253,7 +262,7 @@ function Metric({ label, value, meta, tone }) {
 
 function StatusPill({ label, tone = '' }) {
   const cls = tone || pillClass(label);
-  return h('span', { className: `status-pill ${cls}`.trim() }, label, h('span', { className: 'sr-only' }, ` (${statusTone(label)})`));
+  return h('span', { className: `status-pill ${cls}`.trim() }, t(label), h('span', { className: 'sr-only' }, ` (${statusTone(label)})`));
 }
 
 function WorkspaceAnalytics({ scope }) {
@@ -263,15 +272,15 @@ function WorkspaceAnalytics({ scope }) {
   const infrastructureFailures = Number(scope?.infrastructureFailures || 0);
   const averageDuration = Number(scope?.averageDuration || 0);
   const values = Array.isArray(scope?.points) ? scope.points.map(point => Number(point.toolCalls || 0)) : [];
-  return h('section', { className: 'workspace-analytics-mini', 'aria-label': `${scope.workspace || 'Project'} analytics` },
-    h('div', { className: 'workspace-analytics-head' }, h('span', null, '24h · hourly')),
+  return h('section', { className: 'workspace-analytics-mini', 'aria-label': t`${scope.workspace || t('Project')} analytics` },
+    h('div', { className: 'workspace-analytics-head' }, h('span', null, t('24h · hourly'))),
     h('div', { className: 'workspace-analytics-metrics' },
       h(MiniMetric, { label: 'Actions', value: formatInteger(toolCalls) }),
       h(MiniMetric, { label: 'Successful actions', value: completed ? formatPercent(successRate) : '—' }),
       h(MiniMetric, { label: 'Average time', value: completed ? formatDuration(averageDuration) : '—' })
     ),
     infrastructureFailures
-      ? h('div', { className: 'connection-notice bad', role: 'status' }, `${formatInteger(infrastructureFailures)} Rel.AI internal ${infrastructureFailures === 1 ? 'error' : 'errors'}`)
+      ? h('div', { className: 'connection-notice bad', role: 'status' }, infrastructureFailures === 1 ? t`${formatInteger(infrastructureFailures)} Rel.AI internal error` : t`${formatInteger(infrastructureFailures)} Rel.AI internal errors`)
       : null,
     values.length
       ? h(Suspense, { fallback: h('span', { className: 'workspace-analytics-sparkline-empty', 'aria-hidden': 'true' }) },
@@ -280,7 +289,7 @@ function WorkspaceAnalytics({ scope }) {
   );
 }
 
-function MiniMetric({ label, value }) { return h('div', null, h('span', null, label), h('strong', null, value)); }
+function MiniMetric({ label, value }) { return h('div', null, h('span', null, t(label)), h('strong', null, value)); }
 
 function WorkspaceAnalyticsState({ label, loading = false }) {
   return h('section', {

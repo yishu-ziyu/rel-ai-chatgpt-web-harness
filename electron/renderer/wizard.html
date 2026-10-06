@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'">
-  <title>Rel.AI MCP Setup</title>
+  <title data-i18n="Rel.AI MCP Setup">Rel.AI MCP Setup</title>
   <link rel="stylesheet" href="./color-tokens.css" />
   <link rel="stylesheet" href="./app.css" />
 </head>
@@ -14,20 +14,20 @@
     <section class="wizard-step">
       <div class="wizard-cloud-card wizard-update-card" id="updateBanner" hidden>
         <div class="wizard-cloud-status">
-          <strong id="updateBannerTitle">Welcome back — Rel.AI was updated</strong>
-          <span id="updateBannerDetail">This looks like an update installed from a full download instead of the in-app updater. Your previous connection was not found on this launch, so reconnect once and you will be back where you left off.</span>
+          <strong id="updateBannerTitle" data-i18n="Welcome back — Rel.AI was updated">Welcome back — Rel.AI was updated</strong>
+          <span id="updateBannerDetail" data-i18n="This looks like an update installed from a full download instead of the in-app updater. Your previous connection was not found on this launch, so reconnect once and you will be back where you left off.">This looks like an update installed from a full download instead of the in-app updater. Your previous connection was not found on this launch, so reconnect once and you will be back where you left off.</span>
         </div>
       </div>
       <div class="wizard-cloud-hero">
-        <span class="wizard-eyebrow" id="wizardEyebrow">Connect this computer</span>
-        <h1 id="wizardTitle">Connect this computer to OpenAI</h1>
-        <p id="wizardSubtitle">Create an OpenAI Secure MCP Tunnel. After it connects, Rel.AI will show the ChatGPT connector setup step.</p>
+        <span class="wizard-eyebrow" id="wizardEyebrow" data-i18n="Connect this computer">Connect this computer</span>
+        <h1 id="wizardTitle" data-i18n="Connect this computer to OpenAI">Connect this computer to OpenAI</h1>
+        <p id="wizardSubtitle" data-i18n="Create an OpenAI Secure MCP Tunnel. After it connects, Rel.AI will show the ChatGPT connector setup step.">Create an OpenAI Secure MCP Tunnel. After it connects, Rel.AI will show the ChatGPT connector setup step.</p>
       </div>
 
       <div class="wizard-cloud-card wizard-prerequisite-card">
         <div class="wizard-cloud-status">
-          <strong>Before you start</strong>
-          <span>Use the OpenAI organization and ChatGPT workspace where you will use Rel.AI. You need access to create or use a Secure MCP Tunnel in that organization.</span>
+          <strong data-i18n="Before you start">Before you start</strong>
+          <span data-i18n="Use the OpenAI organization and ChatGPT workspace where you will use Rel.AI. You need access to create or use a Secure MCP Tunnel in that organization.">Use the OpenAI organization and ChatGPT workspace where you will use Rel.AI. You need access to create or use a Secure MCP Tunnel in that organization.</span>
         </div>
       </div>
 
@@ -36,25 +36,25 @@
           <div class="wizard-value-step-head">
             <span class="wizard-step-number" aria-hidden="true">1</span>
             <div>
-              <strong id="tunnelStepTitle">Create your Secure MCP Tunnel</strong>
-              <p>Set the tunnel to the OpenAI organization and ChatGPT workspace where you will use Rel.AI.</p>
+              <strong id="tunnelStepTitle" data-i18n="Create your Secure MCP Tunnel">Create your Secure MCP Tunnel</strong>
+              <p data-i18n="Set the tunnel to the OpenAI organization and ChatGPT workspace where you will use Rel.AI.">Set the tunnel to the OpenAI organization and ChatGPT workspace where you will use Rel.AI.</p>
             </div>
           </div>
-          <button class="secondary wizard-open-button" type="button" data-open-openai="tunnels">Open OpenAI Tunnels</button>
+          <button class="secondary wizard-open-button" type="button" data-open-openai="tunnels" data-i18n="Open OpenAI Tunnels">Open OpenAI Tunnels</button>
           <div class="wizard-field-group">
-            <p class="wizard-field-help"><strong>In OpenAI, complete all tunnel fields:</strong> Name, Description, Organizations, and ChatGPT workspaces. Select each organization and ChatGPT workspace where you will use Rel.AI.</p>
+            <p class="wizard-field-help"><strong data-i18n="In OpenAI, complete all tunnel fields:">In OpenAI, complete all tunnel fields:</strong> <span data-i18n="Name, Description, Organizations, and ChatGPT workspaces. Select each organization and ChatGPT workspace where you will use Rel.AI.">Name, Description, Organizations, and ChatGPT workspaces. Select each organization and ChatGPT workspace where you will use Rel.AI.</span></p>
           </div>
           <div class="wizard-field-group">
-            <label for="tunnelIdInput"><span>Paste Tunnel ID here</span></label>
+            <label for="tunnelIdInput"><span data-i18n="Paste Tunnel ID here">Paste Tunnel ID here</span></label>
             <input id="tunnelIdInput" type="text" autocomplete="off" spellcheck="false" placeholder="tunnel_…" aria-describedby="tunnelIdHelp tunnelIdError" aria-invalid="false" required />
-            <p class="wizard-field-help" id="tunnelIdHelp">Copy the ID that starts with <code>tunnel_</code>.</p>
+            <p class="wizard-field-help" id="tunnelIdHelp" data-i18n="Copy the ID that starts with tunnel_.">Copy the ID that starts with tunnel_.</p>
             <p class="wizard-field-error" id="tunnelIdError" role="alert" hidden></p>
           </div>
           <details class="wizard-help-details">
-            <summary>Having trouble?</summary>
+            <summary data-i18n="Having trouble?">Having trouble?</summary>
             <div>
-              <p>Make sure the tunnel belongs to the OpenAI organization you intend to use and is associated with the ChatGPT workspace where you use Rel.AI.</p>
-              <p>If you cannot create or edit tunnels, your OpenAI organization owner may need to grant you tunnel access.</p>
+              <p data-i18n="Make sure the tunnel belongs to the OpenAI organization you intend to use and is associated with the ChatGPT workspace where you use Rel.AI.">Make sure the tunnel belongs to the OpenAI organization you intend to use and is associated with the ChatGPT workspace where you use Rel.AI.</p>
+              <p data-i18n="If you cannot create or edit tunnels, your OpenAI organization owner may need to grant you tunnel access.">If you cannot create or edit tunnels, your OpenAI organization owner may need to grant you tunnel access.</p>
             </div>
           </details>
         </section>
@@ -63,44 +63,44 @@
           <div class="wizard-value-step-head">
             <span class="wizard-step-number" aria-hidden="true">2</span>
             <div>
-              <strong id="runtimeKeyStepTitle">Create a runtime API key</strong>
-              <p>Create it in the same OpenAI organization as your tunnel, then copy it while OpenAI still shows it.</p>
+              <strong id="runtimeKeyStepTitle" data-i18n="Create a runtime API key">Create a runtime API key</strong>
+              <p data-i18n="Create it in the same OpenAI organization as your tunnel, then copy it while OpenAI still shows it.">Create it in the same OpenAI organization as your tunnel, then copy it while OpenAI still shows it.</p>
             </div>
           </div>
-          <button class="secondary wizard-open-button" type="button" data-open-openai="apiKeys">Open OpenAI API Keys</button>
+          <button class="secondary wizard-open-button" type="button" data-open-openai="apiKeys" data-i18n="Open OpenAI API Keys">Open OpenAI API Keys</button>
           <div class="wizard-field-group">
-            <label for="tunnelApiKeyInput"><span>Paste runtime API key here</span></label>
+            <label for="tunnelApiKeyInput"><span data-i18n="Paste runtime API key here">Paste runtime API key here</span></label>
             <div class="password-field">
-              <input id="tunnelApiKeyInput" type="password" autocomplete="off" spellcheck="false" placeholder="Paste the runtime API key" aria-describedby="runtimeKeyHelp runtimeKeyError" aria-invalid="false" required />
-              <button class="secondary password-toggle" id="runtimeKeyToggle" type="button" aria-controls="tunnelApiKeyInput" aria-pressed="false">Show</button>
+              <input id="tunnelApiKeyInput" type="password" autocomplete="off" spellcheck="false" placeholder="Paste the runtime API key" data-i18n-placeholder="Paste the runtime API key" aria-describedby="runtimeKeyHelp runtimeKeyError" aria-invalid="false" required />
+              <button class="secondary password-toggle" id="runtimeKeyToggle" type="button" aria-controls="tunnelApiKeyInput" aria-pressed="false" data-i18n="Show">Show</button>
             </div>
-            <p class="wizard-field-help" id="runtimeKeyHelp">Stored securely on this computer.</p>
+            <p class="wizard-field-help" id="runtimeKeyHelp" data-i18n="Stored securely on this computer.">Stored securely on this computer.</p>
             <p class="wizard-field-error" id="runtimeKeyError" role="alert" hidden></p>
           </div>
           <details class="wizard-help-details">
-            <summary>About the runtime API key</summary>
+            <summary data-i18n="About the runtime API key">About the runtime API key</summary>
             <div>
-              <p>Use a restricted API key from the same OpenAI organization as the tunnel and allow it to access the tunnel.</p>
-              <p>Rel.AI uses this key only to operate this Secure MCP Tunnel. It is encrypted by your operating system and is never shown again after you save it.</p>
+              <p data-i18n="Use a restricted API key from the same OpenAI organization as the tunnel and allow it to access the tunnel.">Use a restricted API key from the same OpenAI organization as the tunnel and allow it to access the tunnel.</p>
+              <p data-i18n="Rel.AI uses this key only to operate this Secure MCP Tunnel. It is encrypted by your operating system and is never shown again after you save it.">Rel.AI uses this key only to operate this Secure MCP Tunnel. It is encrypted by your operating system and is never shown again after you save it.</p>
             </div>
           </details>
         </section>
 
         <details class="wizard-advanced-card">
-          <summary>Advanced local settings</summary>
+          <summary data-i18n="Advanced local settings">Advanced local settings</summary>
           <div class="wizard-advanced-content">
-            <label for="portInput"><span>Local connection port</span></label>
+            <label for="portInput"><span data-i18n="Local connection port">Local connection port</span></label>
             <input id="portInput" type="number" min="1024" max="65535" value="3333" aria-describedby="portHelp portError" aria-invalid="false" required />
-            <p class="wizard-field-help" id="portHelp">Leave this at 3333 unless another local application already uses that port.</p>
+            <p class="wizard-field-help" id="portHelp" data-i18n="Leave this at 3333 unless another local application already uses that port.">Leave this at 3333 unless another local application already uses that port.</p>
             <p class="wizard-field-error" id="portError" role="alert" hidden></p>
           </div>
         </details>
         <p class="wizard-inline-error" id="setupError" role="alert" aria-live="polite"></p>
-        <button class="primary wizard-main-action" id="connectBtn" type="button">Connect this computer</button>
+        <button class="primary wizard-main-action" id="connectBtn" type="button" data-i18n="Connect this computer">Connect this computer</button>
       </div>
-      <div class="wizard-actions"><button class="secondary" id="cancelWizardBtn" type="button">Cancel</button></div>
+      <div class="wizard-actions"><button class="secondary" id="cancelWizardBtn" type="button" data-i18n="Cancel">Cancel</button></div>
     </section>
   </main>
-  <script src="./wizard.js"></script>
+  <script type="module" src="./wizard.js"></script>
 </body>
 </html>

@@ -1,5 +1,7 @@
 import React, { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { copyText } from '../../clipboard.js';
+import { t } from '../../i18n.js';
+import { useUiLanguage } from '../../i18n-react.js';
 import { Icon } from '../../components/icons.js';
 import { pillClass } from '../../components/pill.js';
 import { taskProgressView } from '../../components/task-progress.js';
@@ -27,8 +29,9 @@ export function createHomeRoute(useDashboardSlices) {
 }
 
 function HomeView({ data = {} }) {
+  const language = useUiLanguage();
   const workspace = getWorkspaceFilter();
-  const state = useMemo(() => overviewState(data, workspace), [data, workspace]);
+  const state = useMemo(() => overviewState(data, workspace), [data, workspace, language]);
   const setup = useMemo(() => desktopSetupState(data), [data]);
   const activeCard = taskActivityModel(data.taskActivity, state.tasks[0]);
   return h('div', { className: 'section', 'data-home-react': '' },
@@ -46,11 +49,11 @@ function HomeView({ data = {} }) {
 function ConnectionHero({ state }) {
   return h('section', { className: `overview-hero overview-hero-compact ${state.tone}`, 'data-home-live-connection': '' },
     h('div', { className: 'overview-copy' },
-      h('div', { className: 'overview-kicker' }, state.kicker),
-      h('h2', { className: 'overview-title' }, state.title),
-      h('p', { className: 'overview-description' }, state.description)
+      h('div', { className: 'overview-kicker' }, t(state.kicker)),
+      h('h2', { className: 'overview-title' }, t(state.title)),
+      h('p', { className: 'overview-description' }, t(state.description))
     ),
-    h('a', { className: 'buttonlike secondary compact-button', href: routeMetadata('settings/connection').href }, 'View connection')
+    h('a', { className: 'buttonlike secondary compact-button', href: routeMetadata('settings/connection').href }, t('View connection'))
   );
 }
 
@@ -63,13 +66,13 @@ function TaskActivityCard({ model }) {
     return h('section', { className: `card task-overview ${stateClass}`, 'data-home-live-activity': '' },
       h('div', { className: 'task-overview-mark', 'aria-hidden': 'true' }, model.attention ? '!' : model.waiting ? '…' : h('span', { className: 'task-overview-spinner' })),
       h('div', { className: 'task-overview-copy' },
-        h('div', { className: 'overview-kicker' }, 'Current task'),
-        h('h3', null, model.title),
+        h('div', { className: 'overview-kicker' }, t('Current task')),
+        h('h3', null, task.title || model.title),
         h('p', null, model.description),
         h(TaskProgress, { progress: task.progress, status: task.status, compact: true })
       ),
       h('div', { className: 'task-overview-meta' },
-        h('span', null, model.activityLabel),
+        h('span', null, t(model.activityLabel)),
         h('strong', { 'data-clock-elapsed-start': startedAt }, formatDuration(Date.now() - startedAtMs, { live: true }))
       )
     );
@@ -77,7 +80,7 @@ function TaskActivityCard({ model }) {
   return h('section', { className: `card task-overview ${model.tone}`, 'data-home-live-activity': '' },
     h('div', { className: 'task-overview-mark', 'aria-hidden': 'true' }, model.mark),
     h('div', { className: 'task-overview-copy' },
-      h('div', { className: 'overview-kicker' }, 'Previous task'),
+      h('div', { className: 'overview-kicker' }, t('Previous task')),
       h('h3', null, task.title || model.title),
       h('p', null, model.description),
       h(TaskProgress, { progress: task.progress, status: task.status, compact: true })
@@ -103,14 +106,14 @@ function taskActivityModel(activity = {}, persistedTask = null) {
     const waiting = presentation.category === 'waiting';
     const semantic = semanticProgressFor(task);
     const operation = semantic.currentActivity || task.currentActivity || task.operation || taskAction(task.lastTool || task.tool);
-    const stage = String(semantic.currentStage || 'Task progress').trim();
+    const stage = String(semantic.currentStage ? t(semantic.currentStage) : t('Task progress')).trim();
     const activityText = String(semantic.currentActivity || '').trim();
     const location = task.workspace || activeTaskLocation(activeTasks);
-    let title = task.title || operation || 'Current task';
-    let description = activityText && activityText !== stage ? `${stage} · ${activityText}` : stage || activityText || 'Task is open';
-    description = location ? `${description} in ${location}.` : `${description}.`;
-    if (!task.title && !attention && !waiting && activeTasks.length > 1) title = `${activeCalls} Rel.AI actions are running.`;
-    if (!attention && !waiting && activeTasks.length > 1) description = `${activeCalls} ${pluralLabel(activeCalls, 'active action')} across ${activeTaskLocation(activeTasks)}.`;
+    let title = task.title || operation || t('Current task');
+    let description = activityText && activityText !== stage ? `${stage} · ${activityText}` : stage || activityText || t('Task is open');
+    description = location ? t`${description} in ${location}.` : `${description}.`;
+    if (!task.title && !attention && !waiting && activeTasks.length > 1) title = t`${activeCalls} Rel.AI actions are running.`;
+    if (!attention && !waiting && activeTasks.length > 1) description = t`${activeCalls} ${t(pluralLabel(activeCalls, 'active action'))} across ${activeTaskLocation(activeTasks)}.`;
     return {
       active: true,
       attention,
@@ -122,10 +125,10 @@ function taskActivityModel(activity = {}, persistedTask = null) {
       activity: activityText,
       location,
       activityLabel: attention
-        ? `Action required · ${statusLabel(task.status)}`
+        ? t`Action required · ${statusLabel(task.status)}`
         : waiting
-          ? `${statusLabel(task.status)} · latest progress`
-          : `${activeCalls} ${pluralLabel(activeCalls, 'active call')}`
+          ? t`${statusLabel(task.status)} · latest progress`
+          : t`${activeCalls} ${t(pluralLabel(activeCalls, 'active call'))}`
     };
   }
   const attention = ['failed', 'blocked', 'validation_failed'].includes(task.status);
@@ -141,38 +144,38 @@ function taskActivityModel(activity = {}, persistedTask = null) {
     mark = '✓';
     title = 'Task completed';
   }
-  const failureText = failed ? completed ? ` · ${failed} warning${failed === 1 ? '' : 's'}` : ` · ${failed} failed` : '';
-  const completionText = completed ? ` · ${task.summary || 'final checks passed'}` : ' · ChatGPT did not report a final result';
-  return { active: false, task, mark, title, tone: attention ? 'attention' : completed ? 'completed' : 'waiting', description: `${task.workspace || 'project'} · ${callCount} ${pluralLabel(callCount, 'action')}${failureText}${completionText}` };
+  const failureText = failed ? completed ? (failed === 1 ? t` · ${failed} warning` : t` · ${failed} warnings`) : t` · ${failed} failed` : '';
+  const completionText = completed ? t` · ${task.summary || t('final checks passed')}` : t(' · ChatGPT did not report a final result');
+  return { active: false, task, mark, title: t(title), tone: attention ? 'attention' : completed ? 'completed' : 'waiting', description: `${task.workspace || t('project')} · ${callCount} ${t(pluralLabel(callCount, 'action'))}${failureText}${completionText}` };
 }
 
 function WorkspaceSummaryCard({ workspaces, findings }) {
   return h('section', { className: 'card', 'data-home-live-workspaces': '' },
-    h('div', { className: 'card-head' }, h('h3', null, 'Projects'), h('a', { className: 'section-action', href: routeMetadata('workspaces').href }, 'Manage')),
+    h('div', { className: 'card-head' }, h('h3', null, t('Projects')), h('a', { className: 'section-action', href: routeMetadata('workspaces').href }, t('Manage'))),
     h('div', { className: 'card-body compact-workspace-list' },
       workspaces.length ? workspaces.slice(0, 6).map(workspace => h('div', { className: 'compact-workspace', key: workspace.alias || workspace.path },
-        h('div', null, h('strong', null, workspace.alias || 'project'), h('div', { className: 'compact-workspace-path' }, workspace.path || '')),
+        h('div', null, h('strong', null, workspace.alias || t('project')), h('div', { className: 'compact-workspace-path' }, workspace.path || '')),
         h(StatusPill, { value: overviewWorkspaceStatus(workspace, findings) })
-      )) : h('div', { className: 'empty' }, 'No projects added yet. ', h('a', { className: 'buttonlike secondary compact-button', href: routeMetadata('workspaces').href }, 'Add your first project'))
+      )) : h('div', { className: 'empty' }, t('No projects added yet. '), h('a', { className: 'buttonlike secondary compact-button', href: routeMetadata('workspaces').href }, t('Add your first project')))
     )
   );
 }
 
 function RecentTasksCard({ tasks }) {
   return h('section', { className: 'card', 'data-home-live-sessions': '' },
-    h('div', { className: 'card-head' }, h('h3', null, 'Latest tasks'), h('a', { className: 'section-action', href: routeHref('tasks') }, 'See all tasks')),
+    h('div', { className: 'card-head' }, h('h3', null, t('Latest tasks')), h('a', { className: 'section-action', href: routeHref('tasks') }, t('See all tasks'))),
     h('div', { className: 'card-body' },
       tasks.length ? tasks.slice(0, 5).map(task => {
         const endedAt = task.endedAt || task.completedAt;
         const warnings = task.status === 'completed' ? Number(task.failedToolCallCount ?? task.failures ?? 0) : 0;
-        const warningText = warnings ? ` · ${warnings} warning${warnings === 1 ? '' : 's'}` : '';
+        const warningText = warnings ? (warnings === 1 ? t` · ${warnings} warning` : t` · ${warnings} warnings`) : '';
         const taskId = String(task.id || task.taskId || task.work_id || '').trim();
         return h('a', { className: 'activity-row', href: routeHref('tasks', { workspace: task.workspace || '', task: taskId }), key: taskId || `${task.workspace}-${endedAt || task.startedAt || ''}` },
-          h('span', { className: 'activity-time', 'data-clock-relative': endedAt || undefined }, endedAt ? timeAgo(endedAt) : 'now'),
-          h('span', { className: 'activity-name truncate' }, h('strong', null, task.title || task.operation || taskAction(task.lastTool)), ` · ${task.workspace || 'project'} · ${task.toolCallCount ?? task.calls ?? 0} actions${warningText}`),
+          h('span', { className: 'activity-time', 'data-clock-relative': endedAt || undefined }, endedAt ? timeAgo(endedAt) : t('now')),
+          h('span', { className: 'activity-name truncate' }, h('strong', null, task.title || task.operation || taskAction(task.lastTool)), t` · ${task.workspace || t('project')} · ${task.toolCallCount ?? task.calls ?? 0} actions${warningText}`),
           h(StatusPill, recentTaskStatusProps(task))
         );
-      }) : h('div', { className: 'empty' }, 'Tasks will appear here after ChatGPT starts using Rel.AI on a project.')
+      }) : h('div', { className: 'empty' }, t('Tasks will appear here after ChatGPT starts using Rel.AI on a project.'))
     )
   );
 }
@@ -192,8 +195,8 @@ function HomeAnalytics({ taskRevision, workspace }) {
   if (analytics.scope) return h(HomeAnalyticsContent, { scope: analytics.scope, refreshing: analytics.loading });
   return h('section', { className: 'card home-analytics-card', 'data-home-analytics': '', 'aria-busy': analytics.loading ? 'true' : 'false' },
     h('div', { className: 'card-head home-analytics-head' },
-      h('div', null, h('h3', null, 'Activity'), h('p', null, analytics.error ? 'Activity could not be loaded.' : 'Loading activity…')),
-      h('a', { className: 'buttonlike secondary compact-button', href: routeHref('usage', workspace ? { workspace } : {}) }, 'View analytics')
+      h('div', null, h('h3', null, t('Activity')), h('p', null, analytics.error ? t('Activity could not be loaded.') : t('Loading activity…'))),
+      h('a', { className: 'buttonlike secondary compact-button', href: routeHref('usage', workspace ? { workspace } : {}) }, t('View analytics'))
     ),
     analytics.loading ? h('div', { className: 'home-analytics-loading', 'aria-hidden': 'true' }, h('span'), h('span'), h('span'), h('span')) : null
   );
@@ -203,16 +206,16 @@ function HomeAnalyticsContent({ scope, refreshing }) {
   const view = homeAnalyticsView(scope);
   return h('section', { className: 'card home-analytics-card', 'data-home-analytics': '', 'aria-busy': refreshing ? 'true' : 'false' },
     h('div', { className: 'card-head home-analytics-head' },
-      h('div', null, h('div', { className: 'home-analytics-title-row' }, h(Icon, { name: 'usage', className: 'home-analytics-title-icon', size: 17 }), h('h3', null, view.heading), h('span', null, '24h · hourly'))),
-      h('a', { className: 'buttonlike secondary compact-button home-analytics-link', href: routeHref('usage', view.workspaceScoped ? { workspace: view.workspace } : {}) }, h('span', null, 'View analytics'), h(Icon, { name: 'chevronRight', size: 15 }))
+      h('div', null, h('div', { className: 'home-analytics-title-row' }, h(Icon, { name: 'usage', className: 'home-analytics-title-icon', size: 17 }), h('h3', null, t(view.heading)), h('span', null, t('24h · hourly')))),
+      h('a', { className: 'buttonlike secondary compact-button home-analytics-link', href: routeHref('usage', view.workspaceScoped ? { workspace: view.workspace } : {}) }, h('span', null, t('View analytics')), h(Icon, { name: 'chevronRight', size: 15 }))
     ),
     h('div', { className: 'home-analytics-body' },
-      h('div', { className: 'home-analytics-metrics' }, view.metrics.map(metric => h('div', { className: 'home-analytics-metric', key: metric.label }, h('div', { className: 'home-analytics-metric-label' }, h(Icon, { name: homeAnalyticsMetricIcon(metric.label), size: 15 }), h('span', null, metric.label)), h('strong', null, metric.value), metric.detail ? h('small', null, metric.detail) : null))),
-      h('div', { className: 'home-analytics-pulse' }, h('div', { className: 'home-analytics-pulse-head' }, h('div', null, h('span', null, 'Hourly activity'), h('strong', null, view.contextSummary)), h('small', null, 'UTC')), h(HomeAnalyticsPulse, { pulse: view.pulse })),
+      h('div', { className: 'home-analytics-metrics' }, view.metrics.map(metric => h('div', { className: 'home-analytics-metric', key: metric.label }, h('div', { className: 'home-analytics-metric-label' }, h(Icon, { name: homeAnalyticsMetricIcon(metric.label), size: 15 }), h('span', null, t(metric.label))), h('strong', null, metric.value), metric.detail ? h('small', null, t(metric.detail)) : null))),
+      h('div', { className: 'home-analytics-pulse' }, h('div', { className: 'home-analytics-pulse-head' }, h('div', null, h('span', null, t('Hourly activity')), h('strong', null, t(view.contextSummary))), h('small', null, 'UTC')), h(HomeAnalyticsPulse, { pulse: view.pulse })),
       view.errorSummary
         ? h('div', { className: 'home-analytics-foot bad', role: 'status' },
-            h('span', null, view.errorSummary),
-            h('a', { href: routeHref('diagnostics') }, 'Open Troubleshooting')
+            h('span', null, t(view.errorSummary)),
+            h('a', { href: routeHref('diagnostics') }, t('Open Troubleshooting'))
           )
         : null
     )
@@ -227,17 +230,17 @@ function homeAnalyticsMetricIcon(label) {
 }
 
 function HomeAnalyticsPulse({ pulse }) {
-  if (pulse.empty) return h('div', { className: 'home-analytics-pulse-empty' }, 'No activity yet.');
+  if (pulse.empty) return h('div', { className: 'home-analytics-pulse-empty' }, t('No activity yet.'));
   return h('div', { className: 'home-analytics-chart' },
     h(Suspense, { fallback: h('div', { className: 'home-analytics-chart-canvas chart-loading', 'aria-hidden': 'true' }) },
       h(SparkChart, {
         values: pulse.values,
         className: 'home-analytics-chart-canvas',
-        ariaLabel: pulse.summary,
+        ariaLabel: t(pulse.summary),
         decorative: false
       })
     ),
-    h('div', { className: 'home-analytics-scale' }, h('span', null, 'Earlier'), h('span', null, 'Current hour'))
+    h('div', { className: 'home-analytics-scale' }, h('span', null, t('Earlier')), h('span', null, t('Current hour')))
   );
 }
 
@@ -258,19 +261,19 @@ function DesktopSetupChecklist({ setup }) {
   const dismiss = async () => {
     setDismissed(true);
     await dismissDesktopSetup();
-    toast('Getting started guide dismissed.', { variant: 'info' });
+    toast(t('Getting started guide dismissed.'), { variant: 'info' });
   };
   const copyPrompt = async () => {
     try {
       await copyText(chatGptFirstPrompt(setup.workspaceAlias));
       setCopyState('copied');
       window.setTimeout(() => setCopyState('idle'), 1400);
-    } catch { toast('Clipboard access failed.', { variant: 'error' }); }
+    } catch { toast(t('Clipboard access failed.'), { variant: 'error' }); }
   };
   return h('section', { className: 'card desktop-setup-checklist', 'data-desktop-setup-checklist': '' },
     h('div', { className: 'card-head desktop-setup-head' },
-      h('div', null, h('span', { className: 'desktop-setup-eyebrow' }, 'Getting started'), h('h3', null, 'Get Rel.AI working with ChatGPT'), h('p', null, `${completedCount} of ${steps.length} steps complete. Follow the highlighted step.`)),
-      h('button', { className: 'secondary compact-button', type: 'button', onClick: dismiss }, 'Dismiss guide')
+      h('div', null, h('span', { className: 'desktop-setup-eyebrow' }, t('Getting started')), h('h3', null, t('Get Rel.AI working with ChatGPT')), h('p', null, t`${completedCount} of ${steps.length} steps complete. Follow the highlighted step.`)),
+      h('button', { className: 'secondary compact-button', type: 'button', onClick: dismiss }, t('Dismiss guide'))
     ),
     h('div', { className: 'card-body desktop-setup-items' }, steps.map((item, index) => h(DesktopSetupStep, { key: item.id, item, index, current: item.id === current?.id, setup, copyState, onCopy: copyPrompt })))
   );
@@ -282,9 +285,9 @@ function DesktopSetupStep({ item, index, current, setup, copyState, onCopy }) {
   return h('div', { className },
     h('span', { className: 'desktop-setup-index', 'aria-hidden': 'true' }, item.complete ? '✓' : index + 1),
     h('div', { className: 'desktop-setup-copy' },
-      h('div', { className: 'desktop-setup-title-row' }, h('strong', null, item.title), h('span', { className: 'desktop-setup-state' }, state)),
-      h('p', null, item.description),
-      item.id === 'first-request' && current ? h('div', { className: 'desktop-first-request' }, h('span', null, 'Paste this into ChatGPT'), h('code', null, chatGptFirstPrompt(setup.workspaceAlias))) : null,
+      h('div', { className: 'desktop-setup-title-row' }, h('strong', null, t(item.title)), h('span', { className: 'desktop-setup-state' }, t(state))),
+      h('p', null, t(item.description)),
+      item.id === 'first-request' && current ? h('div', { className: 'desktop-first-request' }, h('span', null, t('Paste this into ChatGPT')), h('code', null, chatGptFirstPrompt(setup.workspaceAlias))) : null,
       item.id === 'chatgpt' && current ? h(ChatGptSetupGuide, { tunnelId: setup.tunnelId }) : null
     ),
     setupAction(item, current, copyState, onCopy)
@@ -293,8 +296,8 @@ function DesktopSetupStep({ item, index, current, setup, copyState, onCopy }) {
 
 function setupAction(item, current, copyState, onCopy) {
   if (item.complete || item.locked || item.actionType === 'guide') return null;
-  if (item.actionType === 'copy') return h('button', { className: `${current ? 'primary' : 'secondary'} compact-button`, type: 'button', onClick: onCopy }, copyState === 'copied' ? 'Copied' : item.action);
-  return h('a', { className: `buttonlike ${current ? 'primary' : 'secondary'} compact-button`, href: item.href }, item.action);
+  if (item.actionType === 'copy') return h('button', { className: `${current ? 'primary' : 'secondary'} compact-button`, type: 'button', onClick: onCopy }, copyState === 'copied' ? t('Copied') : t(item.action));
+  return h('a', { className: `buttonlike ${current ? 'primary' : 'secondary'} compact-button`, href: item.href }, t(item.action));
 }
 
 function ChatGptSetupGuide({ tunnelId }) {
@@ -305,16 +308,16 @@ function ChatGptSetupGuide({ tunnelId }) {
     setIconSaved(true);
   };
   return h('div', { className: 'chatgpt-setup-guide compact desktop-chatgpt-guide' },
-    h('div', { className: 'chatgpt-guide-heading' }, h('strong', null, 'Finish ChatGPT setup'), h('span', null, 'Use Tunnel + No authentication. Rel.AI keeps the local connection private.')),
-    h('section', { className: 'chatgpt-connector-handoff', 'aria-label': 'ChatGPT connector setup' },
-      h('dl', { className: 'chatgpt-connector-values' }, h('dt', null, 'Name'), h('dd', null, 'Rel.AI MCP'), h('dt', null, 'Connection'), h('dd', null, 'Tunnel'), h('dt', null, 'Tunnel'), h('dd', { className: 'mono' }, tunnelId || 'Select this computer’s tunnel'), h('dt', null, 'Authentication'), h('dd', null, 'No authentication')),
-      h('div', { className: 'chatgpt-connector-actions', role: 'group', 'aria-label': 'ChatGPT connector setup actions' },
-        h('button', { className: 'primary', type: 'button', onClick: () => window.open(CHATGPT_CONNECTOR_CREATE_URL, '_blank', 'noopener,noreferrer') }, 'ChatGPT setup'),
-        h('button', { className: 'secondary', type: 'button', onClick: saveIcon }, iconSaved ? `Optional icon saved · ${RELAI_CONNECTOR_ICON_FILENAME}` : h(React.Fragment, null, 'Save optional Rel.AI icon ', h('span', null, 'PNG · under 10 KB')))
+    h('div', { className: 'chatgpt-guide-heading' }, h('strong', null, t('Finish ChatGPT setup')), h('span', null, t('Use Tunnel + No authentication. Rel.AI keeps the local connection private.'))),
+    h('section', { className: 'chatgpt-connector-handoff', 'aria-label': t('ChatGPT connector setup') },
+      h('dl', { className: 'chatgpt-connector-values' }, h('dt', null, t('Name')), h('dd', null, 'Rel.AI MCP'), h('dt', null, t('Connection')), h('dd', null, t('Tunnel')), h('dt', null, t('Tunnel')), h('dd', { className: 'mono' }, tunnelId || t('Select this computer’s tunnel')), h('dt', null, t('Authentication')), h('dd', null, t('No authentication'))),
+      h('div', { className: 'chatgpt-connector-actions', role: 'group', 'aria-label': t('ChatGPT connector setup actions') },
+        h('button', { className: 'primary', type: 'button', onClick: () => window.open(CHATGPT_CONNECTOR_CREATE_URL, '_blank', 'noopener,noreferrer') }, t('ChatGPT setup')),
+        h('button', { className: 'secondary', type: 'button', onClick: saveIcon }, iconSaved ? t`Optional icon saved · ${RELAI_CONNECTOR_ICON_FILENAME}` : h(React.Fragment, null, t('Save optional Rel.AI icon '), h('span', null, t('PNG · under 10 KB'))))
       ),
-      h('p', { className: 'chatgpt-connector-note' }, iconSaved ? 'The icon is optional. Open ChatGPT setup when you are ready.' : 'Open ChatGPT now. You can add the Rel.AI icon after the connector works.')
+      h('p', { className: 'chatgpt-connector-note' }, iconSaved ? t('The icon is optional. Open ChatGPT setup when you are ready.') : t('Open ChatGPT now. You can add the Rel.AI icon after the connector works.'))
     ),
-    h('ol', null, steps.map(step => h('li', { key: step }, step)))
+    h('ol', null, steps.map(step => h('li', { key: step }, t(step))))
   );
 }
 
@@ -323,23 +326,23 @@ function semanticProgressFor(task = {}) { return task.semanticProgress && typeof
 function activeTaskLocation(tasks) {
   const workspaces = [...new Set(tasks.map(item => item.workspace).filter(Boolean))];
   if (workspaces.length === 1) return workspaces[0];
-  if (workspaces.length > 1) return `${workspaces.length} projects`;
-  return 'your projects';
+  if (workspaces.length > 1) return t`${workspaces.length} projects`;
+  return t('your projects');
 }
 function taskAction(tool) {
   const value = String(tool || '');
-  if (/run_checks|browser/.test(value)) return 'Checking changes';
-  if (/diff|git_status/.test(value)) return 'Reviewing changes';
-  if (/git_draft_pr|git_create_pr/.test(value)) return 'Preparing pull request text';
-  if (/git_commit|git_push/.test(value)) return 'Publishing changes';
-  if (/edit|write|replace|tidy_run|restore|reset_workspace/.test(value)) return 'Applying changes';
-  return 'Looking through the project';
+  if (/run_checks|browser/.test(value)) return t('Checking changes');
+  if (/diff|git_status/.test(value)) return t('Reviewing changes');
+  if (/git_draft_pr|git_create_pr/.test(value)) return t('Preparing pull request text');
+  if (/git_commit|git_push/.test(value)) return t('Publishing changes');
+  if (/edit|write|replace|tidy_run|restore|reset_workspace/.test(value)) return t('Applying changes');
+  return t('Looking through the project');
 }
 function StatusPill({ value, classOverride = '' }) {
   const cls = String(classOverride || pillClass(value)).trim();
   return h('span', { className: `status-pill${cls ? ` ${cls}` : ''}` },
-    String(value || 'unknown'),
-    h('span', { className: 'sr-only' }, ` (${statusTone(value)})`)
+    t(String(value || 'unknown')),
+    h('span', { className: 'sr-only' }, ` (${t(statusTone(value))})`)
   );
 }
 
@@ -348,11 +351,11 @@ function TaskProgress({ progress, status, compact = false }) {
   const attributes = {
     className: view.className,
     role: view.role || undefined,
-    'aria-label': view.ariaLabel || undefined
+    'aria-label': t(view.ariaLabel) || undefined
   };
   const label = h('div', { className: 'task-progress-label' },
-    h('span', null, view.label),
-    view.state ? h('strong', null, view.state) : null
+    h('span', null, t(view.label)),
+    view.state ? h('strong', null, t(view.state)) : null
   );
   if (view.kind === 'static') return h('div', attributes, label);
   if (view.kind === 'indeterminate') {
@@ -365,7 +368,7 @@ function TaskProgress({ progress, status, compact = false }) {
     label,
     h('progress', {
       className: 'task-progress-track',
-      'aria-label': view.progressAriaLabel,
+      'aria-label': t(view.progressAriaLabel),
       value: view.value,
       max: 100
     })

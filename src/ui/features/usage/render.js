@@ -1,3 +1,4 @@
+import { t } from '../../i18n.js';
 import { deltaFor } from './range-model.js';
 
 const METRIC_HELP = Object.freeze({
@@ -28,7 +29,7 @@ export function analyticsMetrics(scope, previous) {
           'Request delivery',
           'requestDeliveryRate',
           percent(scope.requestDeliveryRate),
-          `${integer(scope.transport.response_delivered)} of ${integer(scope.transport.request_started)} responses delivered${Number(scope.transport.connection_closed || 0) > 0 ? ` · ${integer(scope.transport.connection_closed)} closed early` : ''}${Number(scope.transport.upstream_5xx || 0) > 0 ? ` · ${integer(scope.transport.upstream_5xx)} server-error responses` : ''}`,
+          t`${integer(scope.transport.response_delivered)} of ${integer(scope.transport.request_started)} responses delivered${Number(scope.transport.connection_closed || 0) > 0 ? t` · ${integer(scope.transport.connection_closed)} closed early` : ''}${Number(scope.transport.upstream_5xx || 0) > 0 ? t` · ${integer(scope.transport.upstream_5xx)} server-error responses` : ''}`,
           { rate: true, spark: false, available: true, previousAvailable: Number(previous?.transport?.request_started || 0) > 0 }
         )]
       : [])
@@ -62,7 +63,7 @@ export function timelineModel(values, metricLabel = 'Actions') {
     peak: peakRow.value,
     peakIndex: peakRow.index,
     latestIndex: latestRow.index,
-    summary: `${metricLabel} trend. Peak ${formatChartValue(peakRow.value, metricLabel)} ${bucketsAgo ? `${bucketsAgo} periods ago` : 'in the latest measured period'}. Latest ${formatChartValue(latest, metricLabel)}. Overall trend ${trend}.`
+    summary: t`${t(metricLabel)} trend. Peak ${formatChartValue(peakRow.value, metricLabel)} ${bucketsAgo ? t`${bucketsAgo} periods ago` : t('in the latest measured period')}. Latest ${formatChartValue(latest, metricLabel)}. Overall trend ${t(trend)}.`
   };
 }
 

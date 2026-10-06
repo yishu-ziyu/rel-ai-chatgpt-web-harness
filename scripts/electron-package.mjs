@@ -43,6 +43,7 @@ const platformEnvironment = { ...process.env, REL_AI_TARGET_PLATFORM: platform, 
 if (mode === 'unpacked') {
   runNode('unpacked output cleanup', path.join(root, 'scripts', 'clean.mjs'), ['--electron']);
 }
+runNode('localization generation', path.join(root, 'scripts', 'generate-localization.mjs'));
 runNode('color-token verification', generateColorTokens, ['--check']);
 runNode('dashboard Vite build', viteCli, ['build']);
 ensureTunnelClient(platform, targetArch);

@@ -3,6 +3,8 @@ import { fetchJson, postJson } from '../../api.js';
 import { confirmAction } from '../../components/confirm-dialog.js';
 import { Icon } from '../../components/icons.js';
 import { toast } from '../../components/toast.js';
+import { t } from '../../i18n.js';
+import { useUiLanguage } from '../../i18n-react.js';
 
 const h = React.createElement;
 const EXTENSIONS_REPOSITORY_URL = 'https://github.com/Kyne0328/rel-ai-extensions';
@@ -15,6 +17,7 @@ const TABS = Object.freeze([
 
 function createExtensionsRoute() {
   return function ExtensionsRoute() {
+    useUiLanguage();
     const [activeTab, setActiveTab] = useState('installed');
     const [data, setData] = useState(null);
     const [busy, setBusy] = useState('');
@@ -23,7 +26,7 @@ function createExtensionsRoute() {
     const load = async ({ refresh = false } = {}) => {
       const result = await fetchJson(`/api/extensions${refresh ? '?refresh=1' : ''}`, { cache: 'no-store' });
       if (!result?.ok) {
-        setError(result?.error || 'Extensions could not be loaded.');
+        setError(result?.error || t('Extensions could not be loaded.'));
         return;
       }
       setData(result);
@@ -37,36 +40,36 @@ function createExtensionsRoute() {
       if (!entry?.id || busy) return;
       const permissions = permissionSummary(entry.permissions);
       const cliSetup = entry.autoInstall
-        ? ' If its required command is missing, Rel.AI may download the manifest-declared, SHA-256-verified platform binary or private tool bundle into Rel.AI local data.'
+        ? t(' If its required command is missing, Rel.AI may download the manifest-declared, SHA-256-verified platform binary or private tool bundle into Rel.AI local data.')
         : entry.kind === 'cli'
-          ? ' This extension expects its required local command to already be installed.'
+          ? t(' This extension expects its required local command to already be installed.')
           : '';
       const confirmed = await confirmAction({
-        title: action === 'update' ? `Update ${entry.name}` : `Install ${entry.name}`,
-        message: `${action === 'update' ? 'Update' : 'Install'} this extension from the Rel.AI extension catalog?`,
+        title: action === 'update' ? t`Update ${entry.name}` : t`Install ${entry.name}`,
+        message: t`${t(action === 'update' ? 'Update' : 'Install')} this extension from the Rel.AI extension catalog?`,
         detail: permissions.length
-          ? `Declared access: ${permissions}. Rel.AI's existing authorization rules still control every local action.${cliSetup}`
-          : `This extension declares no additional access. Rel.AI's existing authorization rules still control every local action.${cliSetup}`,
-        confirmLabel: action === 'update' ? 'Update extension' : 'Install extension'
+          ? t`Declared access: ${permissions}. Rel.AI's existing authorization rules still control every local action.${cliSetup}`
+          : t`This extension declares no additional access. Rel.AI's existing authorization rules still control every local action.${cliSetup}`,
+        confirmLabel: t(action === 'update' ? 'Update extension' : 'Install extension')
       });
       if (!confirmed) return;
       setBusy(`${action}:${entry.id}`);
       const result = await postJson('/api/extensions', { action, id: entry.id, confirmPermissions: true }, { cache: 'no-store', timeout: 15 * 60 * 1000 });
       setBusy('');
       if (!result?.ok) {
-        toast(result?.error || `Could not ${action} the extension.`, { variant: 'error' });
+        toast(result?.error || t(action === 'update' ? 'Could not update the extension.' : 'Could not install the extension.'), { variant: 'error' });
         return;
       }
-      toast(action === 'update' ? `${entry.name} updated.` : `${entry.name} installed.`, { variant: 'success' });
+      toast(action === 'update' ? t`${entry.name} updated.` : t`${entry.name} installed.`, { variant: 'success' });
       await load();
     };
     const runRemove = async extension => {
       if (!extension?.id || busy) return;
       const confirmed = await confirmAction({
-        title: `Remove ${extension.name}`,
-        message: 'Remove this extension from Rel.AI?',
-        detail: 'The extension package is removed from Rel.AI local data. Project files are not changed.',
-        confirmLabel: 'Remove extension',
+        title: t`Remove ${extension.name}`,
+        message: t('Remove this extension from Rel.AI?'),
+        detail: t('The extension package is removed from Rel.AI local data. Project files are not changed.'),
+        confirmLabel: t('Remove extension'),
         danger: true
       });
       if (!confirmed) return;
@@ -74,18 +77,18 @@ function createExtensionsRoute() {
       const result = await postJson('/api/extensions', { action: 'remove', id: extension.id, confirmRemove: true }, { cache: 'no-store' });
       setBusy('');
       if (!result?.ok) {
-        toast(result?.error || 'Could not remove the extension.', { variant: 'error' });
+        toast(result?.error || t('Could not remove the extension.'), { variant: 'error' });
         return;
       }
-      toast(`${extension.name} removed.`, { variant: 'success' });
+      toast(t`${extension.name} removed.`, { variant: 'success' });
       await load();
     };
 
     return h('div', { className: 'section extensions-page', 'data-extensions-react': '' },
       h('div', { className: 'section-head' },
         h('div', null,
-          h('h2', null, 'Extend Rel.AI without replacing ChatGPT'),
-          h('p', null, 'Extensions add developer workflows and external tools while ChatGPT remains the conversation and reasoning host.')
+          h('h2', null, t('Extend Rel.AI without replacing ChatGPT')),
+          h('p', null, t('Extensions add developer workflows and external tools while ChatGPT remains the conversation and reasoning host.'))
         ),
         h('div', { className: 'section-head-actions' },
           activeTab === 'discover' ? h('button', {
@@ -95,17 +98,17 @@ function createExtensionsRoute() {
               await load({ refresh: true });
               setBusy('');
             }
-          }, busy === 'refresh' ? 'Refreshing…' : 'Refresh catalog') : null,
-          h(ExternalLink, { href: EXTENSIONS_REPOSITORY_URL, label: 'Extension repository' })
+          }, t(busy === 'refresh' ? 'Refreshing…' : 'Refresh catalog')) : null,
+          h(ExternalLink, { href: EXTENSIONS_REPOSITORY_URL, label: t('Extension repository') })
         )
       ),
       h(ExtensionTabs, { activeTab, setActiveTab }),
       error ? h('div', { className: 'connection-notice bad', role: 'alert' },
-        h('strong', null, 'Extensions could not be loaded'),
+        h('strong', null, t('Extensions could not be loaded')),
         h('p', null, error),
-        h('button', { className: 'secondary compact-button', type: 'button', onClick: () => void load() }, 'Try again')
+        h('button', { className: 'secondary compact-button', type: 'button', onClick: () => void load() }, t('Try again'))
       ) : null,
-      !data && !error ? h('div', { className: 'settings-loading', role: 'status' }, 'Loading extensions…') : null,
+      !data && !error ? h('div', { className: 'settings-loading', role: 'status' }, t('Loading extensions…')) : null,
       data && activeTab === 'installed' ? h(InstalledPanel, { data, catalogById, busy, runInstall, runRemove }) : null,
       data && activeTab === 'discover' ? h(DiscoverPanel, { data, busy, runInstall }) : null,
       activeTab === 'developer' ? h(DeveloperPanel, { installRoot: data?.installRoot || '' }) : null
@@ -127,7 +130,7 @@ function ExtensionTabs({ activeTab, setActiveTab }) {
     setActiveTab(ids[next]);
     event.currentTarget.querySelector(`[data-extension-tab="${ids[next]}"]`)?.focus({ preventScroll: true });
   };
-  return h('div', { className: 'extensions-tabs', role: 'tablist', 'aria-label': 'Extensions sections', onKeyDown },
+  return h('div', { className: 'extensions-tabs', role: 'tablist', 'aria-label': t('Extensions sections'), onKeyDown },
     ...TABS.map(([id, label]) => h('button', {
       key: id,
       type: 'button',
@@ -139,7 +142,7 @@ function ExtensionTabs({ activeTab, setActiveTab }) {
       tabIndex: activeTab === id ? 0 : -1,
       'data-extension-tab': id,
       onClick: () => setActiveTab(id)
-    }, label))
+    }, t(label)))
   );
 }
 
@@ -152,18 +155,18 @@ function InstalledPanel({ data, catalogById, busy, runInstall, runRemove }) {
         extension.error ? h('p', { className: 'extension-warning' }, extension.error) : null,
         h(PermissionList, { permissions: extension.permissions }),
         h('div', { className: 'extension-card-actions' },
-          catalog?.updateAvailable ? h('button', { className: 'primary compact-button', type: 'button', disabled: Boolean(busy), onClick: () => void runInstall(catalog, 'update') }, busy === `update:${extension.id}` ? 'Updating…' : `Update to v${catalog.version}`) : null,
-          h('button', { className: 'secondary compact-button danger', type: 'button', disabled: Boolean(busy), onClick: () => void runRemove(extension) }, busy === `remove:${extension.id}` ? 'Removing…' : 'Remove')
+          catalog?.updateAvailable ? h('button', { className: 'primary compact-button', type: 'button', disabled: Boolean(busy), onClick: () => void runInstall(catalog, 'update') }, busy === `update:${extension.id}` ? t('Updating…') : t`Update to v${catalog.version}`) : null,
+          h('button', { className: 'secondary compact-button danger', type: 'button', disabled: Boolean(busy), onClick: () => void runRemove(extension) }, t(busy === `remove:${extension.id}` ? 'Removing…' : 'Remove'))
         )
       );
-    })) : h(EmptyExtensions, { title: 'No extensions installed', copy: 'Open Discover to install extensions from the canonical Rel.AI catalog.' })
+    })) : h(EmptyExtensions, { title: t('No extensions installed'), copy: t('Open Discover to install extensions from the canonical Rel.AI catalog.') })
   );
 }
 
 function DiscoverPanel({ data, busy, runInstall }) {
   const catalog = data.catalog || [];
   return h('section', { id: 'extensions-panel-discover', role: 'tabpanel', 'aria-labelledby': 'extensions-tab-discover', tabIndex: 0 },
-    data.catalogError ? h('div', { className: 'connection-notice warn', role: 'status' }, h('strong', null, 'Catalog unavailable'), h('p', null, data.catalogError)) : null,
+    data.catalogError ? h('div', { className: 'connection-notice warn', role: 'status' }, h('strong', null, t('Catalog unavailable')), h('p', null, data.catalogError)) : null,
     catalog.length ? h('div', { className: 'extensions-list' }, catalog.map(extension => h(ExtensionCard, {
       key: extension.id,
       extension,
@@ -173,11 +176,11 @@ function DiscoverPanel({ data, busy, runInstall }) {
       h(PermissionList, { permissions: extension.permissions }),
       h('div', { className: 'extension-card-actions' },
         extension.installed && !extension.updateAvailable
-          ? h('span', { className: 'muted' }, `Installed v${extension.installedVersion}`)
+          ? h('span', { className: 'muted' }, t`Installed v${extension.installedVersion}`)
           : h('button', {
               className: 'primary compact-button', type: 'button', disabled: Boolean(busy),
               onClick: () => void runInstall(extension, extension.installed ? 'update' : 'install')
-            }, busy === `${extension.installed ? 'update' : 'install'}:${extension.id}` ? 'Working…' : extension.installed ? `Update to v${extension.version}` : 'Review & install')
+            }, busy === `${extension.installed ? 'update' : 'install'}:${extension.id}` ? t('Working…') : extension.installed ? t`Update to v${extension.version}` : t('Review & install'))
       )
     ))) : h(EmptyExtensions, {
       title: data.catalogError ? 'Catalog could not be loaded' : 'No published extensions yet',
@@ -189,33 +192,33 @@ function DiscoverPanel({ data, busy, runInstall }) {
 function DeveloperPanel({ installRoot }) {
   return h('section', { id: 'extensions-panel-developer', role: 'tabpanel', 'aria-labelledby': 'extensions-tab-developer', tabIndex: 0, className: 'extensions-developer' },
     h('div', { className: 'layout-grid' },
-      h(DeveloperCard, { title: 'Extension manifest' },
-        h('p', { className: 'muted' }, 'Each package uses relai-extension.json with an id, semantic version, Rel.AI compatibility range, publisher, declared permissions, requirements, entrypoints, and SHA-256 hashes for every installed file.'),
-        h(ExternalLink, { href: EXTENSION_SCHEMA_URL, label: 'Manifest schema' })
+      h(DeveloperCard, { title: t('Extension manifest') },
+        h('p', { className: 'muted' }, t('Each package uses relai-extension.json with an id, semantic version, Rel.AI compatibility range, publisher, declared permissions, requirements, entrypoints, and SHA-256 hashes for every installed file.')),
+        h(ExternalLink, { href: EXTENSION_SCHEMA_URL, label: t('Manifest schema') })
       ),
-      h(DeveloperCard, { title: 'Supported adapters' },
-        h('p', { className: 'muted' }, 'Skill extensions add reusable ChatGPT instructions. CLI extensions pair skills with local commands. They can provide either one SHA-256-pinned platform binary or a SHA-256-pinned ZIP tool bundle with multiple explicit command entrypoints and supporting files.')
+      h(DeveloperCard, { title: t('Supported adapters') },
+        h('p', { className: 'muted' }, t('Skill extensions add reusable ChatGPT instructions. CLI extensions pair skills with local commands. They can provide either one SHA-256-pinned platform binary or a SHA-256-pinned ZIP tool bundle with multiple explicit command entrypoints and supporting files.'))
       )
     ),
-    h(DeveloperCard, { title: 'Security and execution model' },
+    h(DeveloperCard, { title: t('Security and execution model') },
       h('ul', { className: 'extensions-guidelines' },
-        h('li', null, 'ChatGPT Web remains the reasoning and conversation host.'),
-        h('li', null, 'Catalog permissions are declarations shown before installation; Rel.AI’s existing authorization policy still enforces local actions.'),
-        h('li', null, 'Package files and optional CLI artifacts are downloaded only from HTTPS locations declared by the catalog-selected manifest, verified by SHA-256, and installed outside project folders.'),
-        h('li', null, 'ZIP tool bundles are extracted into the extension’s private local folder with traversal, symlink, entry-count, and extracted-size checks.'),
-        h('li', null, 'Only declared managed command directories are appended after the inherited child PATH, so an extension cannot override an existing system command.'),
-        h('li', null, 'Extensions are not imported as arbitrary code into the Rel.AI service process.')
+        h('li', null, t('ChatGPT Web remains the reasoning and conversation host.')),
+        h('li', null, t('Catalog permissions are declarations shown before installation; Rel.AI’s existing authorization policy still enforces local actions.')),
+        h('li', null, t('Package files and optional CLI artifacts are downloaded only from HTTPS locations declared by the catalog-selected manifest, verified by SHA-256, and installed outside project folders.')),
+        h('li', null, t('ZIP tool bundles are extracted into the extension’s private local folder with traversal, symlink, entry-count, and extracted-size checks.')),
+        h('li', null, t('Only declared managed command directories are appended after the inherited child PATH, so an extension cannot override an existing system command.')),
+        h('li', null, t('Extensions are not imported as arbitrary code into the Rel.AI service process.'))
       ),
-      installRoot ? h('div', { className: 'extension-install-root' }, h('span', null, 'Local extension folder'), h('code', null, installRoot)) : null
+      installRoot ? h('div', { className: 'extension-install-root' }, h('span', null, t('Local extension folder')), h('code', null, installRoot)) : null
     ),
-    h(DeveloperCard, { title: 'Publish an extension' },
+    h(DeveloperCard, { title: t('Publish an extension') },
       h('ol', { className: 'extensions-guidelines' },
-        h('li', null, 'Create SKILL.md and relai-extension.json in your repository.'),
-        h('li', null, 'Hash every packaged file and list the hashes in the manifest.'),
-        h('li', null, 'Add one catalog entry in rel-ai-extensions that points to the HTTPS manifest URL.'),
-        h('li', null, 'Keep requested permissions limited to what the extension actually needs.')
+        h('li', null, t('Create SKILL.md and relai-extension.json in your repository.')),
+        h('li', null, t('Hash every packaged file and list the hashes in the manifest.')),
+        h('li', null, t('Add one catalog entry in rel-ai-extensions that points to the HTTPS manifest URL.')),
+        h('li', null, t('Keep requested permissions limited to what the extension actually needs.'))
       ),
-      h(ExternalLink, { href: EXTENSIONS_REPOSITORY_URL, label: 'Publishing repository' })
+      h(ExternalLink, { href: EXTENSIONS_REPOSITORY_URL, label: t('Publishing repository') })
     )
   );
 }
@@ -224,13 +227,13 @@ function ExtensionCard({ extension, status, tone = '', children }) {
   return h('article', { className: 'card extension-card' },
     h('div', { className: 'card-head extension-card-head' },
       h('div', null, h('h3', null, extension.name || extension.id), h('span', { className: 'extension-id' }, extension.id)),
-      h('span', { className: `status-pill ${tone}`.trim() }, status)
+      h('span', { className: `status-pill ${tone}`.trim() }, t(status))
     ),
     h('div', { className: 'card-body extension-card-body' },
-      h('p', null, extension.description || 'No description provided.'),
+      h('p', null, extension.description || t('No description provided.')),
       h('div', { className: 'extension-meta' },
         extension.version ? h('span', null, `v${extension.version}`) : null,
-        extension.kind ? h('span', null, extension.kind === 'cli' ? 'CLI' : 'Skill') : null,
+        extension.kind ? h('span', null, extension.kind === 'cli' ? 'CLI' : t('Skill')) : null,
         extension.publisher ? h('span', null, typeof extension.publisher === 'string' ? extension.publisher : extension.publisher.name) : null
       ),
       children
@@ -240,17 +243,17 @@ function ExtensionCard({ extension, status, tone = '', children }) {
 
 function PermissionList({ permissions = [] }) {
   const values = Array.isArray(permissions) ? permissions : [];
-  return h('div', { className: 'extension-permissions', 'aria-label': 'Declared extension access' },
-    h('span', { className: 'extension-permissions-label' }, 'Declared access'),
+  return h('div', { className: 'extension-permissions', 'aria-label': t('Declared extension access') },
+    h('span', { className: 'extension-permissions-label' }, t('Declared access')),
     values.length
       ? values.map(permission => h('code', { className: 'extension-permission', key: permission }, permission))
-      : h('span', { className: 'muted' }, 'None')
+      : h('span', { className: 'muted' }, t('None'))
   );
 }
 
 function DeveloperCard({ title, children }) {
   return h('section', { className: 'card' },
-    h('div', { className: 'card-head' }, h('h3', null, title)),
+    h('div', { className: 'card-head' }, h('h3', null, t(title))),
     h('div', { className: 'card-body detail-stack' }, children)
   );
 }
@@ -258,8 +261,8 @@ function DeveloperCard({ title, children }) {
 function EmptyExtensions({ title, copy }) {
   return h('div', { className: 'card' }, h('div', { className: 'empty-state' },
     h('div', { className: 'empty-state-icon', 'aria-hidden': 'true' }, h(Icon, { name: 'extensions', size: 24 })),
-    h('strong', { className: 'empty-state-title' }, title),
-    h('p', { className: 'empty-state-copy' }, copy)
+    h('strong', { className: 'empty-state-title' }, t(title)),
+    h('p', { className: 'empty-state-copy' }, t(copy))
   ));
 }
 

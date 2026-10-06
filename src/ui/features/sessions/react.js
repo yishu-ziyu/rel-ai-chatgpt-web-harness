@@ -12,6 +12,8 @@ import { eventTimestampValue } from '../../../taskEvents.js';
 import { classifyTaskChangedFiles } from '../../../taskSemanticProgress.js';
 import { taskEntityView, workSessionStateView } from '../../task-identity.js';
 import { statusPillClass, statusTone } from '../../status-tone.js';
+import { t } from '../../i18n.js';
+import { useUiLanguage } from '../../i18n-react.js';
 import {
   isOngoingSession,
   mergeSessionDetail,
@@ -20,7 +22,6 @@ import {
   orderSessionEvents,
   semanticFileCounts,
   semanticProgressFor,
-  sessionCountLabel,
   sessionDescription,
   sessionDurationMs,
   sessionIdentifier,
@@ -46,6 +47,7 @@ export function createSessionsRoute(useDashboardSlices) {
 }
 
 function SessionsPage({ data = {} }) {
+  useUiLanguage();
   const workspace = getWorkspaceFilter();
   const requestedId = String(getRouteParams().get('task') || '').trim();
   const sessions = useMemo(() => sessionsForDisplay(data, workspace), [data.tasks, workspace]);
@@ -124,18 +126,18 @@ function SessionsPage({ data = {} }) {
 
   return h('div', { className: 'section sessions-page', 'data-sessions-react': '' },
     h('div', { className: 'feature-toolbar sessions-toolbar' },
-      h('div', { className: 'sessions-summary-line', 'data-session-summary': '' }, sessionSummary(sessions)),
+      h('div', { className: 'sessions-summary-line', 'data-session-summary': '' }, sessionSummary(sessions, t)),
       h('div', { className: 'section-head-actions' },
         h(ProjectFilter, { workspaces: data.config?.workspaces || [], selected: workspace }),
-        h('span', { className: 'feature-count' }, sessionCountLabel(sessions, workspace))
+        h('span', { className: 'feature-count' }, workspace ? t`${sessions.length} tasks in ${workspace}` : sessions.length === 1 ? t`${sessions.length} task` : t`${sessions.length} tasks`)
       )
     ),
     h('section', { className: 'card sessions-history-card' },
       h('div', { className: 'card-head' },
-        h('div', null, h('h3', null, 'Recent tasks')),
+        h('div', null, h('h3', null, t('Recent tasks'))),
         h('div', { className: 'card-head-actions' },
-          h('a', { className: 'section-action', href: '#activity' }, 'Activity'),
-          h('a', { className: 'section-action', href: '#diagnostics' }, 'Troubleshooting')
+          h('a', { className: 'section-action', href: '#activity' }, t('Activity')),
+          h('a', { className: 'section-action', href: '#diagnostics' }, t('Troubleshooting'))
         )
       ),
       h('div', { className: 'sessions-master-detail' },
@@ -147,10 +149,10 @@ function SessionsPage({ data = {} }) {
                 selected: sessionIdentifier(session) === selectedId,
                 onSelect: selectSession
               }))
-            : h('div', { className: 'empty' }, 'No tasks yet.'),
+            : h('div', { className: 'empty' }, t('No tasks yet.')),
           remaining > 0 && h('div', { className: 'session-list-footer' },
-            h('span', null, `${remaining} older task${remaining === 1 ? '' : 's'} hidden`),
-            h('button', { className: 'secondary', type: 'button', onClick: showMore, 'data-load-more-sessions': '' }, `Show ${Math.min(SESSION_PAGE_SIZE, remaining)} more`)
+            h('span', null, remaining === 1 ? t`${remaining} older task hidden` : t`${remaining} older tasks hidden`),
+            h('button', { className: 'secondary', type: 'button', onClick: showMore, 'data-load-more-sessions': '' }, t`Show ${Math.min(SESSION_PAGE_SIZE, remaining)} more`)
           )
         ),
         h('aside', { className: 'session-inspector', 'data-session-inspector': '' },
@@ -163,8 +165,8 @@ function SessionsPage({ data = {} }) {
                 setOlderExpanded
               })
             : h('div', { className: 'inspector-empty' },
-                h('strong', null, 'Select a task'),
-                h('span', null, 'Choose a task to inspect its overview, activity, and technical details without leaving this page.')
+                h('strong', null, t('Select a task')),
+                h('span', null, t('Choose a task to inspect its overview, activity, and technical details without leaving this page.'))
               )
         )
       )
@@ -175,25 +177,26 @@ function SessionsPage({ data = {} }) {
 function ProjectFilter({ workspaces = [], selected = '' }) {
   const options = orderWorkspacesAlphabetically(workspaces);
   return h('label', { className: 'filter-field' },
-    h('span', { className: 'sr-only' }, 'Project filter'),
+    h('span', { className: 'sr-only' }, t('Project filter')),
     h('select', {
-      'aria-label': 'Project filter',
+      'aria-label': t('Project filter'),
       value: selected,
       onChange: event => setWorkspaceFilter(event.target.value)
     },
-      h('option', { value: '' }, 'All projects'),
+      h('option', { value: '' }, t('All projects')),
       ...options.map(workspace => h('option', { key: workspace.alias, value: workspace.alias }, workspace.alias))
     )
   );
 }
 
 const TaskRow = memo(function TaskRow({ session, selected, onSelect }) {
+  useUiLanguage();
   const id = sessionIdentifier(session);
   const state = workSessionStateView(session);
   const live = isOngoingSession(session);
   const semantic = semanticProgressFor(session);
   const operation = semantic.currentActivity || session.currentActivity || session.operation || operationForTool(session.lastTool);
-  const description = sessionDescription(session, live, operation, semantic);
+  const description = sessionDescription(session, live, operation, semantic, t);
   const toolCalls = Number(session.toolCallCount ?? session.calls ?? 0);
   const projectFiles = semanticFileCounts(session, semantic).product;
   const title = session.title || operation;
@@ -202,26 +205,28 @@ const TaskRow = memo(function TaskRow({ session, selected, onSelect }) {
     type: 'button',
     'data-task-id': id,
     'aria-current': selected ? 'true' : undefined,
-    'aria-label': `${title}. ${state.label}. ${description}`,
+    'aria-label': `${title}. ${sessionStateLabel(state.label)}. ${description}`,
     title,
     onClick: () => flushSync(() => onSelect(id))
   },
     h('span', { className: 'task-row-status' }, h(StatusPill, { state })),
     h('span', { className: 'task-row-main' },
       h('strong', null, title),
-      h('span', { className: 'task-row-description' }, `${session.workspace || 'project'} · ${toolCalls} tool call${toolCalls === 1 ? '' : 's'} · ${projectFiles} project file${projectFiles === 1 ? '' : 's'} · ${description}`)
+      h('span', { className: 'task-row-description' }, `${session.workspace || t('project')} · ${toolCalls === 1 ? t`${toolCalls} tool call` : t`${toolCalls} tool calls`} · ${projectFiles === 1 ? t`${projectFiles} project file` : t`${projectFiles} project files`} · ${description}`)
     ),
     h('span', { className: 'task-row-time' }, h(SessionTime, { session, live })),
     h('span', { 'aria-hidden': 'true' }, '›')
   );
 });
 
+function sessionStateLabel(label) { return label === 'Open' ? t('Session open') : t(label); }
+
 function StatusPill({ state, label = state?.label || 'Unknown' }) {
   const status = state?.status || label;
   const tone = statusTone(status);
   const pillClass = state?.pillClass || statusPillClass(status);
   return h('span', { className: `status-pill ${pillClass}`.trim() },
-    label,
+    sessionStateLabel(label),
     h('span', { className: 'sr-only' }, ` (${tone})`)
   );
 }
@@ -252,11 +257,11 @@ function SessionInspector({ session, activeTab, setActiveTab, olderExpanded, set
   const live = isOngoingSession(session);
   const semantic = semanticProgressFor(session);
   const fileCounts = semanticFileCounts(session, semantic);
-  const operationValue = session.operation || operationForTool(session.lastTool) || '—';
-  const currentTitle = live ? (semantic.currentStage || state.label) : state.label;
+  const operationValue = session.operation || (session.lastTool ? operationForTool(session.lastTool) : t('Rel.AI activity')) || '—';
+  const currentTitle = live && semantic.currentStage ? t(semantic.currentStage) : sessionStateLabel(state.label);
   const currentCopy = live
-    ? (semantic.currentActivity || operationValue || 'Task is open.')
-    : (session.summary || session.endReason || sessionDescription(session, false, operationValue, semantic));
+    ? (semantic.currentActivity || operationValue || t('Task is open.'))
+    : (session.summary || session.endReason || sessionDescription(session, false, operationValue, semantic, t));
   const [controlKey, setControlKey] = useState('');
   useEffect(() => setControlKey(''), [id]);
   const runningOperations = live && Array.isArray(session.currentOperations) ? session.currentOperations : [];
@@ -264,10 +269,10 @@ function SessionInspector({ session, activeTab, setActiveTab, olderExpanded, set
     const key = operationId ? `stop:${operationId}` : action;
     if (action === 'cancel') {
       const confirmed = await confirmAction({
-        title: 'Cancel task?',
-        message: 'Cancel this task and stop its finite running operations?',
-        detail: 'Managed persistent processes keep running and can be stopped separately from Processes.',
-        confirmLabel: 'Cancel task',
+        title: t('Cancel task?'),
+        message: t('Cancel this task and stop its finite running operations?'),
+        detail: t('Managed persistent processes keep running and can be stopped separately from Processes.'),
+        confirmLabel: t('Cancel task'),
         danger: true
       });
       if (!confirmed) return;
@@ -280,14 +285,14 @@ function SessionInspector({ session, activeTab, setActiveTab, olderExpanded, set
         ...(operationId ? { operationId } : {})
       }, { timeout: 10000, pauseTimeoutWhenHidden: false });
       if (result?.ok === false) {
-        toast(result.error || 'The task action could not be completed.', { variant: 'error' });
+        toast(result.error || t('The task action could not be completed.'), { variant: 'error' });
         return;
       }
       toast(action === 'cancel'
-        ? (result.status === 'cancelled' ? 'Task cancelled.' : 'Task cancellation requested.')
+        ? (result.status === 'cancelled' ? t('Task cancelled.') : t('Task cancellation requested.'))
         : result.stoppedOperationCount
-          ? `Stop requested for ${result.stoppedOperationCount} running operation${result.stoppedOperationCount === 1 ? '' : 's'}.`
-          : 'No matching running operation needed to be stopped.', { variant: 'success' });
+          ? result.stoppedOperationCount === 1 ? t`Stop requested for ${result.stoppedOperationCount} running operation.` : t`Stop requested for ${result.stoppedOperationCount} running operations.`
+          : t('No matching running operation needed to be stopped.'), { variant: 'success' });
       requestDashboardRefresh();
     } catch (error) {
       toast(error instanceof Error ? error.message : String(error), { variant: 'error' });
@@ -299,7 +304,7 @@ function SessionInspector({ session, activeTab, setActiveTab, olderExpanded, set
   return h('div', { className: 'detail-stack session-detail' },
     h('header', { className: 'task-detail-header' },
       h('div', null,
-        h('span', { className: 'overview-kicker' }, 'Task'),
+        h('span', { className: 'overview-kicker' }, t('Task')),
         h('h2', { ref: headingRef, tabIndex: -1 }, session.title || operationValue),
         session.objective ? h('p', null, session.objective) : null
       ),
@@ -309,12 +314,12 @@ function SessionInspector({ session, activeTab, setActiveTab, olderExpanded, set
           className: 'secondary', type: 'button', 'data-stop-task-operations': '',
           disabled: Boolean(controlKey),
           onClick: () => { void controlTask('stop'); }
-        }, controlKey === 'stop' ? 'Stopping…' : 'Stop running operations') : null,
+        }, controlKey === 'stop' ? t('Stopping…') : t('Stop running operations')) : null,
         live ? h('button', {
           className: 'secondary danger', type: 'button', 'data-cancel-task': '',
           disabled: Boolean(controlKey),
           onClick: () => { void controlTask('cancel'); }
-        }, controlKey === 'cancel' ? 'Cancelling…' : 'Cancel task') : null
+        }, controlKey === 'cancel' ? t('Cancelling…') : t('Cancel task')) : null
       )
     ),
     h(SessionTabs, { activeTab, setActiveTab }),
@@ -338,13 +343,13 @@ function SessionInspector({ session, activeTab, setActiveTab, olderExpanded, set
     h('div', { className: 'inspector-panel', id: 'session-panel-activity', role: 'tabpanel', 'aria-labelledby': 'session-tab-activity', tabIndex: 0, hidden: activeTab !== 'activity', 'data-session-panel': 'activity' },
       h(TaskTraceSection, { session, olderExpanded, setOlderExpanded }),
       h('div', { className: 'session-inline-actions' },
-        h('a', { className: 'buttonlike secondary', href: routeHref('activity', { workspace: session.workspace, task: id, time: 'all' }) }, 'View in all Activity')
+        h('a', { className: 'buttonlike secondary', href: routeHref('activity', { workspace: session.workspace, task: id, time: 'all' }) }, t('View in all Activity'))
       )
     ),
     h('div', { className: 'inspector-panel', id: 'session-panel-technical', role: 'tabpanel', 'aria-labelledby': 'session-tab-technical', tabIndex: 0, hidden: activeTab !== 'technical', 'data-session-panel': 'technical' },
       h(TechnicalDetails, { session, identities, state, operationValue, controlKey, onStopOperation: operationId => controlTask('stop', operationId) }),
       session.trace?.entries?.length
-        ? h('div', { className: 'session-inline-actions' }, h('button', { className: 'secondary', type: 'button', onClick: () => exportTrace(session), 'data-export-task-trace': '' }, 'Export trace (.jsonl)'))
+        ? h('div', { className: 'session-inline-actions' }, h('button', { className: 'secondary', type: 'button', onClick: () => exportTrace(session), 'data-export-task-trace': '' }, t('Export trace (.jsonl)')))
         : null
     )
   );
@@ -364,7 +369,7 @@ function SessionTabs({ activeTab, setActiveTab }) {
     setActiveTab(tabs[next]);
     event.currentTarget.querySelector(`[data-session-tab="${tabs[next]}"]`)?.focus({ preventScroll: true });
   };
-  return h('div', { className: 'inspector-tabs', role: 'tablist', 'aria-label': 'Task details', onKeyDown },
+  return h('div', { className: 'inspector-tabs', role: 'tablist', 'aria-label': t('Task details'), onKeyDown },
     ...tabs.map(tab => h('button', {
       key: tab,
       className: `inspector-tab${activeTab === tab ? ' is-active' : ''}`,
@@ -376,19 +381,19 @@ function SessionTabs({ activeTab, setActiveTab }) {
       tabIndex: activeTab === tab ? 0 : -1,
       'data-session-tab': tab,
       onClick: () => setActiveTab(tab)
-    }, tab.charAt(0).toUpperCase() + tab.slice(1)))
+    }, t(tab.charAt(0).toUpperCase() + tab.slice(1))))
   );
 }
 
 function Detail({ label, value }) {
-  return h('div', null, h('span', null, label), h('strong', null, String(value)));
+  return h('div', null, h('span', null, t(label)), h('strong', null, String(value)));
 }
 
 function DurationDetail({ session, live }) {
   if (!live) return h(Detail, { label: 'Duration', value: formatDuration(sessionDurationMs(session), { historical: true }) });
   const start = session.startedAt || session.createdAt || '';
   return h('div', null,
-    h('span', null, 'Duration'),
+    h('span', null, t('Duration')),
     h('strong', { className: 'task-detail-clock', 'data-clock-elapsed-start': start }, formatDuration(sessionDurationMs(session), { live: true }))
   );
 }
@@ -399,8 +404,8 @@ function PlanSection({ plan }) {
   const resolved = steps.filter(step => ['completed', 'skipped'].includes(String(step?.status || ''))).length;
   return h('section', { className: 'task-detail-section task-plan-section', 'data-task-plan': '' },
     h('div', { className: 'task-detail-heading' },
-      h('h3', null, 'Plan'),
-      h('span', { 'aria-label': `${resolved} of ${steps.length} steps resolved` }, `${resolved}/${steps.length}`)
+      h('h3', null, t('Plan')),
+      h('span', { 'aria-label': t`${resolved} of ${steps.length} steps resolved` }, `${resolved}/${steps.length}`)
     ),
     h('ol', { className: 'task-plan-list' },
       ...steps.map((step, index) => {
@@ -408,9 +413,9 @@ function PlanSection({ plan }) {
         const marker = status === 'completed' ? '✓' : status === 'skipped' ? '–' : status === 'in_progress' ? '●' : status === 'blocked' ? '!' : '○';
         const statusLabel = status === 'in_progress' ? 'In progress' : status.charAt(0).toUpperCase() + status.slice(1);
         return h('li', { key: `${String(step?.id || 'step')}:${index}`, className: `task-plan-step is-${status}`, 'data-plan-step-status': status },
-          h('span', { className: 'task-plan-marker', role: 'img', 'aria-label': statusLabel }, marker),
+          h('span', { className: 'task-plan-marker', role: 'img', 'aria-label': t(statusLabel) }, marker),
           h('span', { className: 'task-plan-copy' },
-            h('strong', null, String(step?.title || `Step ${index + 1}`)),
+            h('strong', null, String(step?.title || t`Step ${index + 1}`)),
             step?.detail ? h('span', null, String(step.detail)) : null
           )
         );
@@ -423,12 +428,12 @@ function AttentionSection({ session }) {
   if (!sessionNeedsAttention(session)) return null;
   const items = [];
   const failures = Number(session.failures || session.failedToolCallCount || 0);
-  if (failures) items.push(`${failures} tool call${failures === 1 ? '' : 's'} failed`);
-  if (session.validation === 'failed' || session.status === 'validation_failed') items.push('Checks failed');
-  if (session.status === 'blocked') items.push(session.endReason || workSessionStateView(session).label);
-  if (session.status === 'failed') items.push(session.endReason || 'The task ended with an unresolved problem');
+  if (failures) items.push(failures === 1 ? t`${failures} tool call failed` : t`${failures} tool calls failed`);
+  if (session.validation === 'failed' || session.status === 'validation_failed') items.push(t('Checks failed'));
+  if (session.status === 'blocked') items.push(session.endReason || t(workSessionStateView(session).label));
+  if (session.status === 'failed') items.push(session.endReason || t('The task ended with an unresolved problem'));
   return h('section', { className: 'task-detail-section task-detail-problems' },
-    h('h3', null, 'Needs attention'),
+    h('h3', null, t('Needs attention')),
     h('ul', null, ...items.map((item, index) => h('li', { key: `${item}:${index}` }, item)))
   );
 }
@@ -437,12 +442,12 @@ function FailureHistorySection({ session }) {
   const failures = Number(session.failures || session.failedToolCallCount || 0);
   if (!failures || sessionNeedsAttention(session)) return null;
   const completed = workSessionStateView(session).status === 'completed';
-  const callLabel = `${failures} tool call${failures === 1 ? '' : 's'}`;
+  const callLabel = failures === 1 ? t`${failures} tool call` : t`${failures} tool calls`;
   return h('section', { className: 'task-detail-section task-detail-history' },
-    h('h3', null, completed ? 'Recovered during task' : 'Earlier failed tool calls'),
+    h('h3', null, completed ? t('Recovered during task') : t('Earlier failed tool calls')),
     h('p', null, completed
-      ? `${callLabel} failed earlier, but the task later completed. The failures remain visible in Activity.`
-      : `${callLabel} failed earlier. They remain visible in Activity and do not change the task's current status.`)
+      ? t`${callLabel} failed earlier, but the task later completed. The failures remain visible in Activity.`
+      : t`${callLabel} failed earlier. They remain visible in Activity and do not change the task's current status.`)
   );
 }
 
@@ -465,9 +470,9 @@ function ChangedFileGroup({ title, files, session = null }) {
     type: 'button',
     'aria-expanded': expanded ? 'true' : 'false',
     onClick: () => setExpanded(value => !value)
-  }, expanded ? 'Show fewer files' : `Show ${hiddenCount} more file${hiddenCount === 1 ? '' : 's'}`) : null;
+  }, expanded ? t('Show fewer files') : hiddenCount === 1 ? t`Show ${hiddenCount} more file` : t`Show ${hiddenCount} more files`) : null;
   return h('section', { className: 'task-detail-section' },
-    h('div', { className: 'task-detail-heading' }, h('h3', null, title), h('span', null, ordered.length)),
+    h('div', { className: 'task-detail-heading' }, h('h3', null, t(title)), h('span', null, ordered.length)),
     h(FileList, { files: visible, session, moreControl })
   );
 }
@@ -480,7 +485,7 @@ function FileList({ files, session = null, moreControl = null }) {
       h('a', {
         className: 'task-file-link',
         href: routeHref('code', { task: taskId, file }),
-        'aria-label': `Open ${file} in Changes`
+        'aria-label': t`Open ${file} in Changes`
       }, h('code', null, file))
     );
   });
@@ -491,18 +496,18 @@ function FileList({ files, session = null, moreControl = null }) {
 function TaskTraceSection({ session, olderExpanded, setOlderExpanded }) {
   const ordered = orderSessionEvents(session.events || []);
   if (!ordered.length) return h('div', { className: 'inspector-empty compact' },
-    h('strong', null, 'No activity recorded'),
-    h('span', null, 'Task activity will appear here as Rel.AI tools run.')
+    h('strong', null, t('No activity recorded')),
+    h('span', null, t('Task activity will appear here as Rel.AI tools run.'))
   );
   const visible = ordered.slice(0, DETAIL_EVENT_PREVIEW);
   const hidden = ordered.slice(DETAIL_EVENT_PREVIEW);
   return h('section', { className: 'task-detail-section' },
-    h('div', { className: 'task-detail-heading' }, h('h3', null, 'Task activity'), h('span', null, ordered.length)),
-    h('p', { className: 'task-detail-note' }, 'One row per recorded Rel.AI operation. Raw audit trace remains available under Technical.'),
+    h('div', { className: 'task-detail-heading' }, h('h3', null, t('Task activity')), h('span', null, ordered.length)),
+    h('p', { className: 'task-detail-note' }, t('One row per recorded Rel.AI operation. Raw audit trace remains available under Technical.')),
     h('div', { className: 'task-event-list' },
       ...visible.map(event => h(EventRow, { key: activityEventId(event) || `${eventTimestampValue(event)}:${event.operation || event.tool || ''}`, event, session })),
       hidden.length && !olderExpanded
-        ? h('button', { className: 'secondary task-event-more', type: 'button', onClick: () => setOlderExpanded(true), 'data-show-older-events': '' }, `Show ${hidden.length} older event${hidden.length === 1 ? '' : 's'}`)
+        ? h('button', { className: 'secondary task-event-more', type: 'button', onClick: () => setOlderExpanded(true), 'data-show-older-events': '' }, hidden.length === 1 ? t`Show ${hidden.length} older event` : t`Show ${hidden.length} older events`)
         : null,
       ...(olderExpanded ? hidden.map(event => h(EventRow, { key: activityEventId(event) || `${eventTimestampValue(event)}:${event.operation || event.tool || ''}`, event, session, older: true })) : [])
     )
@@ -525,13 +530,13 @@ function EventRow({ event, session, older = false }) {
     'data-task-event-link': '',
     'data-task-older-event': older ? '' : undefined,
     href,
-    'aria-label': `Open ${operation} event in Activity`
+    'aria-label': t`Open ${operation} event in Activity`
   },
     h('span', { 'data-clock-relative': timestamp }, timeAgo(timestamp)),
     h('span', { className: 'task-event-copy' },
       h('code', { title: event.tool?.name || event.tool || '' }, operation),
       event.summary ? h('small', null, event.summary) : null,
-      command ? h('small', { className: 'task-event-command' }, h('span', null, 'Command'), h('code', null, command)) : null
+      command ? h('small', { className: 'task-event-command' }, h('span', null, t('Command')), h('code', null, command)) : null
     ),
     h(StatusPill, { state: { status, pillClass: '' }, label: status })
   );
@@ -540,7 +545,7 @@ function EventRow({ event, session, older = false }) {
 function TechnicalDetails({ session, identities, state, operationValue, controlKey, onStopOperation }) {
   return h('div', { className: 'task-detail-technical is-expanded' },
     h('section', { className: 'task-detail-section' },
-      h('div', { className: 'task-detail-heading' }, h('h3', null, 'Identifiers')),
+      h('div', { className: 'task-detail-heading' }, h('h3', null, t('Identifiers'))),
       h('div', { className: 'task-detail-grid' },
         h(IdentifierDetail, { label: 'Work session ID', value: identities.logicalTaskId || sessionIdentifier(session) || '—' }),
         identities.processId ? h(IdentifierDetail, { label: 'Process ID', value: identities.processId }) : null,
@@ -548,13 +553,13 @@ function TechnicalDetails({ session, identities, state, operationValue, controlK
       )
     ),
     h('section', { className: 'task-detail-section' },
-      h('div', { className: 'task-detail-heading' }, h('h3', null, 'Runtime')),
+      h('div', { className: 'task-detail-heading' }, h('h3', null, t('Runtime'))),
       h('div', { className: 'task-detail-grid' },
-        h(Detail, { label: 'State', value: state.label }),
+        h(Detail, { label: 'State', value: sessionStateLabel(state.label) }),
         h(Detail, { label: 'Last operation', value: operationValue }),
-        h(Detail, { label: 'Validation', value: session.validation || 'not run' }),
-        h(Detail, { label: 'End reason', value: session.endReason || (state.terminal ? 'completed' : 'still open') }),
-        h(Detail, { label: 'Completion confirmed', value: session.completionKnown ? 'Yes' : 'No' })
+        h(Detail, { label: 'Validation', value: t(session.validation || 'not run') }),
+        h(Detail, { label: 'End reason', value: session.endReason || t(state.terminal ? 'completed' : 'still open') }),
+        h(Detail, { label: 'Completion confirmed', value: t(session.completionKnown ? 'Yes' : 'No') })
       )
     ),
     h(CurrentOperations, { session, controlKey, onStopOperation })
@@ -563,13 +568,13 @@ function TechnicalDetails({ session, identities, state, operationValue, controlK
 
 function IdentifierDetail({ label, value }) {
   const copy = () => void copyText(value)
-    .then(() => toast('Identifier copied.', { variant: 'success' }))
+    .then(() => toast(t('Identifier copied.'), { variant: 'success' }))
     .catch(error => toast(error instanceof Error ? error.message : String(error), { variant: 'error' }));
   return h('div', null,
-    h('span', null, label),
+    h('span', null, t(label)),
     h('strong', { className: 'task-detail-identifier' },
       h('code', null, value),
-      h('button', { className: 'runtime-copy-id', type: 'button', onClick: copy, 'data-copy-value': value, 'aria-label': `Copy ${label} ${value}` }, 'Copy')
+      h('button', { className: 'runtime-copy-id', type: 'button', onClick: copy, 'data-copy-value': value, 'aria-label': t`Copy ${t(label)} ${value}` }, t('Copy'))
     )
   );
 }
@@ -579,7 +584,7 @@ function CurrentOperations({ session, controlKey = '', onStopOperation }) {
   const operations = executable && Array.isArray(session.currentOperations) ? session.currentOperations : [];
   if (!operations.length) return null;
   return h('section', { className: 'task-detail-section' },
-    h('div', { className: 'task-detail-heading' }, h('h3', null, 'Running operations'), h('span', null, operations.length)),
+    h('div', { className: 'task-detail-heading' }, h('h3', null, t('Running operations')), h('span', null, operations.length)),
     h('div', { className: 'task-event-list' }, ...operations.map((operation, index) => {
       const operationId = String(operation.id || operation.operationId || operation.invocationId || '');
       const stopping = Boolean(operation.stopRequestedAt) || controlKey === `stop:${operationId}`;
@@ -591,9 +596,9 @@ function CurrentOperations({ session, controlKey = '', onStopOperation }) {
           operationId ? h('button', {
             className: 'secondary compact-button', type: 'button', 'data-stop-task-operation': operationId,
             disabled: Boolean(controlKey) || stopping,
-            'aria-label': `Stop ${operation.label || operation.tool || 'running operation'}`,
+            'aria-label': t`Stop ${operation.label || operation.tool || t('running operation')}`,
             onClick: () => { void onStopOperation?.(operationId); }
-          }, stopping ? 'Stopping…' : 'Stop') : null
+          }, stopping ? t('Stopping…') : t('Stop')) : null
         )
       );
     }))

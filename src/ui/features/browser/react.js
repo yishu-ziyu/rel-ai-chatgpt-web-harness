@@ -1,10 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Icon } from '../../components/icons.js';
+import { t } from '../../i18n.js';
+import { useUiLanguage } from '../../i18n-react.js';
 
 const h = React.createElement;
 
 function createBrowserRoute() {
   return function BrowserRoute() {
+    useUiLanguage();
     const browser = window.relaiDesktop?.browser;
     const [state, setState] = useState(() => emptyState(Boolean(browser)));
     const [error, setError] = useState('');
@@ -142,8 +145,8 @@ function createBrowserRoute() {
       return h('section', { className: 'section browser-route' },
         h('div', { className: 'browser-empty card' },
           h(Icon, { name: 'browser', className: 'browser-empty-icon', size: 28 }),
-          h('h2', null, 'Embedded browser lives in the Rel.AI desktop app.'),
-          h('p', null, 'Browser sessions that need this computer appear here when Rel.AI is running as the desktop app.')
+          h('h2', null, t('Embedded browser lives in the Rel.AI desktop app.')),
+          h('p', null, t('Browser sessions that need this computer appear here when Rel.AI is running as the desktop app.'))
         )
       );
     }
@@ -152,11 +155,11 @@ function createBrowserRoute() {
       return h('section', { className: 'section browser-route' },
         h('div', { className: 'browser-empty card' },
           h(Icon, { name: 'browser', className: 'browser-empty-icon', size: 28 }),
-          h('h2', null, 'No local browser session is active.'),
-          h('p', null, 'When ChatGPT uses Rel.AI for a local browser task, the live page will open here automatically.'),
+          h('h2', null, t('No local browser session is active.')),
+          h('p', null, t('When ChatGPT uses Rel.AI for a local browser task, the live page will open here automatically.')),
           h('div', { className: 'browser-empty-hint' },
-            h('span', { className: 'status-pill' }, 'Waiting for AI'),
-            h('span', null, 'Tabs, sessions, and page preview appear in one place.')
+            h('span', { className: 'status-pill' }, t('Waiting for AI')),
+            h('span', null, t('Tabs, sessions, and page preview appear in one place.'))
           )
         ),
         error ? h('div', { className: 'connection-notice bad', role: 'alert' }, error) : null
@@ -175,9 +178,9 @@ function createBrowserRoute() {
           ? h('div', { className: 'browser-sessions' },
               h('div', { className: 'browser-tabs-label' },
                 h('span', { className: 'browser-count-badge', 'aria-hidden': 'true' }, String(sessions.length)),
-                h('span', null, sessions.length === 1 ? 'session' : 'sessions')
+                h('span', null, t(sessions.length === 1 ? 'session' : 'sessions'))
               ),
-              h('div', { className: 'browser-session-list', role: 'list', 'aria-label': 'Open browser sessions' },
+              h('div', { className: 'browser-session-list', role: 'list', 'aria-label': t('Open browser sessions') },
                 sessions.map((session, index) => {
                   const nativeSessionId = String(session?.nativeSessionId || '');
                   const activeSession = session?.active === true || nativeSessionId === state.nativeSessionId;
@@ -189,7 +192,7 @@ function createBrowserRoute() {
                     key: nativeSessionId || `${index}`,
                     disabled: pending || !nativeSessionId || (userControl && !activeSession),
                     'aria-current': activeSession ? 'page' : undefined,
-                    'aria-label': `Show ${label}`,
+                    'aria-label': t`Show ${label}`,
                     title: session?.url ? `${label}\n${session.url}` : label,
                     onClick: () => { void run(`session:${nativeSessionId}`, () => browser.selectSession(nativeSessionId)); }
                   },
@@ -202,13 +205,13 @@ function createBrowserRoute() {
             )
           : null,
         h('div', { className: 'browser-tabbar' },
-          h('div', { className: 'browser-tabs', 'aria-label': `${tabs.length} open ${tabs.length === 1 ? 'tab' : 'tabs'}` },
+          h('div', { className: 'browser-tabs', 'aria-label': tabs.length === 1 ? t`${tabs.length} open tab` : t`${tabs.length} open tabs` },
             tabs.length
               ? h('div', {
                   className: 'browser-tab-list',
                   role: 'tablist',
                   ref: tabListRef,
-                  'aria-label': 'Open browser tabs',
+                  'aria-label': t('Open browser tabs'),
                   onKeyDown: onTabListKeyDown
                 },
                   tabs.map((tab, index) => {
@@ -233,7 +236,7 @@ function createBrowserRoute() {
                         disabled: !nativePageId || pendingClose,
                         tabIndex: activeTab ? 0 : (activeIndex === 0 && index === 0 ? 0 : -1),
                         'aria-selected': activeTab ? 'true' : 'false',
-                        'aria-label': `${label}${activeTab ? ', active tab' : `, tab ${index + 1} of ${tabs.length}`}${tab?.loading ? ', loading' : ''}`,
+                        'aria-label': `${activeTab ? t`${label}, active tab` : t`${label}, tab ${index + 1} of ${tabs.length}`}${tab?.loading ? t(', loading') : ''}`,
                         title: fullTitle,
                         onClick: () => { void run(`tab:${nativePageId}`, () => browser.selectTab(nativePageId)); },
                         onAuxClick: event => {
@@ -254,8 +257,8 @@ function createBrowserRoute() {
                         type: 'button',
                         disabled: !nativePageId || tabBusy,
                         tabIndex: activeTab ? 0 : -1,
-                        'aria-label': `Close ${label}`,
-                        title: `Close ${label} (middle-click also closes)`,
+                        'aria-label': t`Close ${label}`,
+                        title: t`Close ${label} (middle-click also closes)`,
                         onClick: event => {
                           event.stopPropagation();
                           void run(`close-tab:${nativePageId}`, () => browser.closeTab(nativePageId));
@@ -266,20 +269,20 @@ function createBrowserRoute() {
                 )
               : h('div', { className: 'browser-tabs-empty', role: 'status' },
                   h(Icon, { name: 'add', size: 14 }),
-                  h('span', null, 'No tabs open — new pages from the agent appear here.')
+                  h('span', null, t('No tabs open — new pages from the agent appear here.'))
                 )
           ),
           tabs.length > 1
-            ? h('div', { className: 'browser-tab-count', title: `${tabs.length} open tabs`, 'aria-hidden': 'true' }, `${activeIndex + 1} / ${tabs.length}`)
+            ? h('div', { className: 'browser-tab-count', title: t`${tabs.length} open tabs`, 'aria-hidden': 'true' }, `${activeIndex + 1} / ${tabs.length}`)
             : null
         ),
         h('div', { className: 'browser-toolbar' },
           h('div', { className: 'browser-omnibox' },
-            h('span', { className: `browser-secure${pageHost ? ' ok' : ''}`, title: pageHost ? `Site: ${pageHost}` : 'No page loaded', 'aria-hidden': 'true' },
+            h('span', { className: `browser-secure${pageHost ? ' ok' : ''}`, title: pageHost ? t`Site: ${pageHost}` : t('No page loaded'), 'aria-hidden': 'true' },
               h(Icon, { name: pageHost ? 'success' : 'browser', size: 14 })
             ),
             h('div', { className: 'browser-page-copy' },
-              h('div', { className: 'browser-page-title' }, state.loading ? 'Loading…' : (state.title || 'Local browser session')),
+              h('div', { className: 'browser-page-title' }, state.loading ? t('Loading…') : (state.title || t('Local browser session'))),
               h('div', { className: 'browser-page-url mono', title: state.url || '' }, state.url ? displayUrl(state.url) : 'about:blank')
             ),
             state.loading ? h('span', { className: 'browser-spinner browser-omnibox-spinner', 'aria-hidden': 'true' }) : null,
@@ -287,12 +290,12 @@ function createBrowserRoute() {
               ? h('button', {
                   className: `browser-copy-url${copyStatus ? ' copied' : ''}`,
                   type: 'button',
-                  'aria-label': copyStatus ? 'Page URL copied' : 'Copy page URL',
-                  title: copyStatus ? 'Page URL copied' : 'Copy page URL',
+                  'aria-label': t(copyStatus ? 'Page URL copied' : 'Copy page URL'),
+                  title: t(copyStatus ? 'Page URL copied' : 'Copy page URL'),
                   onClick: () => {
                     void copyText(state.url).then(copied => {
-                      if (copied) setCopyStatus('Page URL copied.');
-                      else setError('Could not copy page URL.');
+                      if (copied) setCopyStatus(t('Page URL copied.'));
+                      else setError(t('Could not copy page URL.'));
                     });
                   }
                 }, h(Icon, { name: 'connection', size: 14 }))
@@ -300,23 +303,23 @@ function createBrowserRoute() {
             h('span', { className: 'sr-only', role: 'status', 'aria-live': 'polite', 'aria-atomic': 'true' }, copyStatus)
           ),
           state.loading ? h('div', { className: 'browser-loading-bar', 'aria-hidden': 'true' }, h('i', null)) : null,
-          h('span', { className: `status-pill ${userControl ? 'warn' : 'working'}` }, userControl ? 'Your control' : 'AI control · Read-only'),
-          viewportLabel ? h('span', { className: 'browser-viewport-pill mono', title: 'AI browser viewport' }, viewportLabel) : null,
+          h('span', { className: `status-pill ${userControl ? 'warn' : 'working'}` }, t(userControl ? 'Your control' : 'AI control · Read-only')),
+          viewportLabel ? h('span', { className: 'browser-viewport-pill mono', title: t('AI browser viewport') }, viewportLabel) : null,
           h('div', { className: 'browser-toolbar-actions' },
             h('button', {
               className: userControl ? 'primary' : 'secondary',
               type: 'button',
               disabled: busy === 'control' || busy === 'stop',
               onClick: () => { void run('control', () => browser.setControl(userControl ? 'ai' : 'user')); }
-            }, busy === 'control' ? 'Changing…' : (userControl ? 'Return to AI' : 'Take control')),
+            }, t(busy === 'control' ? 'Changing…' : (userControl ? 'Return to AI' : 'Take control'))),
             h('button', {
               className: 'danger',
               type: 'button',
               disabled: busy === 'control' || busy === 'stop',
-              'aria-label': 'Stop browser session',
-              title: 'Stop browser session',
+              'aria-label': t('Stop browser session'),
+              title: t('Stop browser session'),
               onClick: () => { void run('stop', () => browser.stop()); }
-            }, busy === 'stop' ? 'Stopping…' : 'Stop')
+            }, t(busy === 'stop' ? 'Stopping…' : 'Stop'))
           )
         )
       ),
@@ -325,12 +328,12 @@ function createBrowserRoute() {
         className: 'browser-surface-slot',
         ref: surfaceRef,
         role: 'region',
-        'aria-label': userControl ? 'Live local browser. You have control.' : 'Live local browser. Rel.AI has control. User input is read-only.'
+        'aria-label': t(userControl ? 'Live local browser. You have control.' : 'Live local browser. Rel.AI has control. User input is read-only.')
       },
         h('div', { className: 'browser-surface-placeholder', 'aria-hidden': 'true' },
           h(Icon, { name: userControl ? 'play' : 'browser', size: 20, className: 'browser-surface-icon' }),
-          h('span', null, userControl ? 'You control this page — interact directly.' : 'Watch live — take control to interact.'),
-          h('span', { className: 'browser-surface-sub' }, pageHost ? pageHost : 'Live view renders here')
+          h('span', null, t(userControl ? 'You control this page — interact directly.' : 'Watch live — take control to interact.')),
+          h('span', { className: 'browser-surface-sub' }, pageHost ? pageHost : t('Live view renders here'))
         )
       )
     );
@@ -437,7 +440,7 @@ function sessionLabel(session, index) {
   if (url) {
     try { return new URL(url).hostname || url; } catch { return url; }
   }
-  return `Session ${index + 1}`;
+  return t`Session ${index + 1}`;
 }
 
 function tabLabel(tab, index) {
@@ -447,7 +450,7 @@ function tabLabel(tab, index) {
   if (url && url !== 'about:blank') {
     try { return new URL(url).hostname || url; } catch { return url; }
   }
-  return `Tab ${index + 1}`;
+  return t`Tab ${index + 1}`;
 }
 
 async function releaseBrowserRouteControl(browser) {
@@ -461,7 +464,7 @@ async function releaseBrowserRouteControl(browser) {
 }
 
 function errorMessage(error) {
-  return error instanceof Error ? error.message : String(error || 'Embedded browser operation failed.');
+  return error instanceof Error ? error.message : String(error || t('Embedded browser operation failed.'));
 }
 
 export { clipBrowserSurfaceBounds, createBrowserRoute, releaseBrowserRouteControl };

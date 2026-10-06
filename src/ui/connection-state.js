@@ -1,3 +1,4 @@
+import { t } from './i18n.js';
 const DEFAULT_STATE = Object.freeze({
   localService: { status: 'stopped' },
   publicEndpoint: { status: 'disabled' },
@@ -55,7 +56,7 @@ export function hasObservedMcpToolCall(connection = {}) {
 }
 export function connectionLayerViews(state = {}) {
   const normalized = normalizeConnectionState(state);
-  return LAYERS.map(([key,title,descriptions]) => { const value=normalized[key]; const [label,tone,description]=descriptions[value.status]||['Unknown','warn','Connection state is unavailable.']; return { key,title,status:value.status,label,tone,description:key==='mcpClient'?requestDescription(value,description):description }; });
+  return LAYERS.map(([key,title,descriptions]) => { const value=normalized[key]; const [label,tone,description]=descriptions[value.status]||['Unknown','warn','Connection state is unavailable.']; return { key, title: t(title), status: value.status, label: t(label), tone, description: t(key === 'mcpClient' ? requestDescription(value, description) : description) }; });
 }
 export function connectionSummary(state = {}) {
   const normalized = normalizeConnectionState(state);
@@ -68,7 +69,7 @@ export function connectionSummary(state = {}) {
   if (tunnel === 'unavailable') return summary('ChatGPT connection unavailable', 'Needs attention', 'bad', 'Review the Connection settings for this computer or open Troubleshooting.');
   if (tunnel === 'disabled') return summary('Connect this computer', 'Setup required', 'warn', 'Set up the Secure MCP Tunnel for this computer.');
   if (tunnel === 'connecting') return summary('Connecting to ChatGPT', 'Connecting', 'working', 'Rel.AI is finishing the secure connection. No setup changes are needed while it connects.');
-  if (tunnel === 'degraded') { const retry=normalized.publicEndpoint; const detail=retry.nextRetryAt?` Retry ${Math.max(1,Number(retry.retryAttempt||1))} is scheduled automatically.`:''; return summary('ChatGPT connection interrupted', 'Tunnel reconnecting', 'warn', `The local service is still running while Rel.AI retries the Secure MCP Tunnel automatically.${detail}`); }
+  if (tunnel === 'degraded') { const retry=normalized.publicEndpoint; const detail=retry.nextRetryAt?t` Retry ${Math.max(1,Number(retry.retryAttempt||1))} is scheduled automatically.`:''; return summary('ChatGPT connection interrupted', 'Tunnel reconnecting', 'warn', t`The local service is still running while Rel.AI retries the Secure MCP Tunnel automatically.${detail}`); }
   if (activity === 'request_failed') return summary('The last ChatGPT request failed', 'Last request failed', 'warn', 'The local Rel.AI service and Secure MCP Tunnel are ready for another request. Restart Rel.AI only if a connection layer has a problem.');
   if (activity === 'active') return summary('ChatGPT is using Rel.AI', 'Active now', 'working', 'A request from ChatGPT is in progress.');
   if (activity === 'recent' || activity === 'connected') return summary('Rel.AI is available to ChatGPT', 'Recently active', 'ok', 'A recent ChatGPT request completed successfully.');
@@ -77,5 +78,5 @@ export function connectionSummary(state = {}) {
 function normalizeLayer(key,value,fallback){const source=value&&typeof value==='object'?value:{};const status=String(source.status||fallback);return{...source,status:ALLOWED[key].has(status)?status:fallback};}
 function normalizeActivity(value){const status=String(value||'no_requests');if(ALLOWED.mcpClient.has(status))return status;if(status==='request_succeeded')return'recent';return'no_requests';}
 function normalizeError(error){if(!error||typeof error!=='object')return null;const message=String(error.message||'').trim();return message?{code:String(error.code||'unknown'),message}:null;}
-function summary(title,label,tone,message){return{title,label,tone,message};}
-function requestDescription(value={},fallback){const at=value.lastRequestAt||value.lastSuccessfulRequestAt||value.lastFailedRequestAt,method=String(value.lastMethod||''),name=String(value.lastToolName||'');if(!at&&!method&&!name)return fallback;const parts=[];if(name)parts.push(`Latest tool: ${name}.`);else if(method)parts.push(`Latest request: ${method}.`);if(at)parts.push(`Observed ${new Date(at).toLocaleString()}.`);return parts.join(' ')||fallback;}
+function summary(title,label,tone,message){return{title:t(title),label:t(label),tone,message:t(message)};}
+function requestDescription(value={},fallback){const at=value.lastRequestAt||value.lastSuccessfulRequestAt||value.lastFailedRequestAt,method=String(value.lastMethod||''),name=String(value.lastToolName||'');if(!at&&!method&&!name)return fallback;const parts=[];if(name)parts.push(t`Latest tool: ${name}.`);else if(method)parts.push(t`Latest request: ${method}.`);if(at)parts.push(t`Observed ${new Date(at).toLocaleString()}.`);return parts.join(' ')||fallback;}

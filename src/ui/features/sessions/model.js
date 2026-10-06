@@ -8,7 +8,7 @@ export function sessionsForDisplay(data = {}, workspace = '') {
     .filter(session => !workspace || session.workspace === workspace));
 }
 
-export function sessionSummary(sessions = []) {
+export function sessionSummary(sessions = [], label = text => text) {
   const counts = sessions.reduce((summary, session) => {
     const state = workSessionStateView(session);
     if (state.active) summary.active += 1;
@@ -22,13 +22,13 @@ export function sessionSummary(sessions = []) {
     return summary;
   }, { active: 0, open: 0, attention: 0, inactive: 0, completed: 0, cancelled: 0, failed: 0, other: 0 });
 
-  const parts = [`${counts.active} active`, `${counts.open} open`];
-  if (counts.attention) parts.push(`${counts.attention} need attention`);
-  if (counts.inactive) parts.push(`${counts.inactive} inactive`);
-  parts.push(`${counts.completed} completed`);
-  if (counts.cancelled) parts.push(`${counts.cancelled} cancelled`);
-  if (counts.failed) parts.push(`${counts.failed} failed`);
-  if (counts.other) parts.push(`${counts.other} other`);
+  const parts = [`${counts.active} ${label('active')}`, `${counts.open} ${label('open')}`];
+  if (counts.attention) parts.push(`${counts.attention} ${label('need attention')}`);
+  if (counts.inactive) parts.push(`${counts.inactive} ${label('inactive')}`);
+  parts.push(`${counts.completed} ${label('completed')}`);
+  if (counts.cancelled) parts.push(`${counts.cancelled} ${label('cancelled')}`);
+  if (counts.failed) parts.push(`${counts.failed} ${label('failed')}`);
+  if (counts.other) parts.push(`${counts.other} ${label('other')}`);
   return parts.join(' · ');
 }
 
@@ -96,13 +96,13 @@ function sessionChangedFileCount(session = {}) {
   return Math.max(0, Number(session.changedFileCount || 0), orderChangedFiles(session.changedFiles || []).length);
 }
 
-export function sessionDescription(session = {}, live = isOngoingSession(session), operation = '', semantic = semanticProgressFor(session)) {
-  if (live) return semantic.currentActivity || semantic.currentStage || operation || 'Task is open';
+export function sessionDescription(session = {}, live = isOngoingSession(session), operation = '', semantic = semanticProgressFor(session), label = text => text) {
+  if (live) return semantic.currentActivity || semantic.currentStage || operation || label('Task is open');
   if (session.summary) return session.summary;
-  if (session.status === 'validation_failed') return 'Checks failed';
-  if (session.status === 'blocked') return session.endReason || workSessionStateView(session).label;
-  if (session.status === 'cancelled') return 'Cancelled before completion';
-  return semantic.currentActivity || session.currentActivity || session.currentStage || operation || 'Task ended';
+  if (session.status === 'validation_failed') return label('Checks failed');
+  if (session.status === 'blocked') return session.endReason || label(workSessionStateView(session).label);
+  if (session.status === 'cancelled') return label('Cancelled before completion');
+  return semantic.currentActivity || session.currentActivity || session.currentStage || operation || label('Task ended');
 }
 
 export function sessionNeedsAttention(session = {}) {

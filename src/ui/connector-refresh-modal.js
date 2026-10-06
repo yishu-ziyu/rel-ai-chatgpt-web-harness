@@ -1,5 +1,7 @@
 import React from 'react';
 import { openModal } from './components/modal.js';
+import { t } from './i18n.js';
+import { useUiLanguage } from './i18n-react.js';
 import { CHATGPT_REFRESH_BUSINESS_NOTE, CHATGPT_REFRESH_STEPS } from './features/settings/connection-guidance.js';
 
 const h = React.createElement;
@@ -60,18 +62,7 @@ function initConnectorRefreshModal(options = {}) {
     if (!view) return;
 
     let modal = null;
-    const content = h('div', { className: 'confirm-dialog' },
-      h('p', null, view.description),
-      h('div', { className: 'confirm-dialog-copy' },
-        h('strong', null, 'In ChatGPT:'),
-        h('ol', { className: 'modal-step-list' }, view.steps.map(step => h('li', { key: step }, step)))
-      ),
-      h('p', { className: 'muted' }, view.businessNote),
-      h('p', { className: 'muted' }, 'You can dismiss this notice now. It will not appear again for this Rel.AI action revision.'),
-      h('div', { className: 'modal-actions' },
-        h('button', { type: 'button', className: 'primary', onClick: () => modal?.close() }, 'Done')
-      )
-    );
+    const content = h(ConnectorRefreshContent, { view, onDone: () => modal?.close() });
 
     modal = openModal({
       title: view.title,
@@ -93,6 +84,22 @@ function initConnectorRefreshModal(options = {}) {
   return () => {
     cancelled = true;
   };
+}
+
+function ConnectorRefreshContent({ view, onDone }) {
+  useUiLanguage();
+  return h('div', { className: 'confirm-dialog' },
+    h('p', null, t`Rel.AI MCP ${view.currentVersion} changed its ChatGPT action definitions. ChatGPT keeps an approved snapshot, so review the updated actions before using the new tool surface.`),
+    h('div', { className: 'confirm-dialog-copy' },
+      h('strong', null, t('In ChatGPT:')),
+      h('ol', { className: 'modal-step-list' }, view.steps.map(step => h('li', { key: step }, t(step))))
+    ),
+    h('p', { className: 'muted' }, t(view.businessNote)),
+    h('p', { className: 'muted' }, t('You can dismiss this notice now. It will not appear again for this Rel.AI action revision.')),
+    h('div', { className: 'modal-actions' },
+      h('button', { type: 'button', className: 'primary', onClick: onDone }, t('Done'))
+    )
+  );
 }
 
 function storageKey(kind, version) {

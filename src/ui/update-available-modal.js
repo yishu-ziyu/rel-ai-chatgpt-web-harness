@@ -1,6 +1,8 @@
 import React from 'react';
 import { closeModal, openModal, updateModal } from './components/modal.js';
 import { toast } from './components/toast.js';
+import { t } from './i18n.js';
+import { useUiLanguage } from './i18n-react.js';
 
 const h = React.createElement;
 const RELEASES_URL = 'https://github.com/Kyne0328/rel-ai-chatgpt-web-harness/releases';
@@ -21,7 +23,7 @@ function supportPolicyModalView(policy) {
       state,
       blocking: true,
       allowLater: false,
-      minimumVersion,
+      minimumVersion, currentVersion, policyMessage: Boolean(policy?.message),
       title: 'Critical update required',
       description: policy?.message || `Rel.AI MCP v${currentVersion || 'this version'} needs an urgent update before Rel.AI can work with ChatGPT again.`
     };
@@ -32,7 +34,7 @@ function supportPolicyModalView(policy) {
       state,
       blocking: true,
       allowLater: false,
-      minimumVersion,
+      minimumVersion, currentVersion, policyMessage: Boolean(policy?.message),
       title: 'Update required',
       description: policy?.message || `This Rel.AI MCP version is no longer supported. Update to v${minimumVersion || 'the current release'} or newer to continue.`
     };
@@ -44,7 +46,7 @@ function supportPolicyModalView(policy) {
       state,
       blocking: false,
       allowLater: true,
-      minimumVersion,
+      minimumVersion, currentVersion, deadline,
       title: 'Update required soon',
       description: deadline
         ? `Support for this version ends on ${deadline}. Update to v${minimumVersion || 'the current release'} or newer before then.`
@@ -56,7 +58,7 @@ function supportPolicyModalView(policy) {
     state,
     blocking: false,
     allowLater: true,
-    minimumVersion,
+    minimumVersion, currentVersion,
     title: 'Update recommended',
     description: `Rel.AI MCP v${minimumVersion || 'a newer version'} or newer is recommended.`
   };
@@ -210,7 +212,7 @@ function updateActionInProgress(status = {}) {
 function supportUpdateAction(status = {}) {
   const state = String(status.state || 'idle');
   if (state === 'unsupported') return { kind: 'link', label: 'Open GitHub Releases' };
-  if (state === 'available') return { kind: 'button', method: 'downloadUpdate', label: `Download v${cleanVersion(status.availableVersion) || 'update'}`, disabled: false, busy: false };
+  if (state === 'available') return { kind: 'button', method: 'downloadUpdate', label: t`Download v${cleanVersion(status.availableVersion) || 'update'}`, disabled: false, busy: false };
   if (state === 'downloaded') return {
     kind: 'button', method: 'installUpdate',
     label: status.installMode === 'open_dmg' ? 'Open DMG' : 'Install update',
@@ -223,6 +225,7 @@ function supportUpdateAction(status = {}) {
 }
 
 function UpdateNoticeContent({ view, status, onLater, onAction }) {
+  useUiLanguage();
   const action = supportUpdateAction(status);
   const detail = view.detail || (view.blocking
     ? 'You can still use the dashboard and update controls, but Rel.AI cannot work with ChatGPT until a supported version is installed.'
@@ -230,27 +233,43 @@ function UpdateNoticeContent({ view, status, onLater, onAction }) {
   if (view.state === 'installing') {
     return h('div', { className: 'update-installing-modal', role: 'status', 'aria-live': 'polite', 'aria-atomic': 'true', 'aria-busy': 'true' },
       h('div', { className: 'loading-mark', 'aria-hidden': 'true' }),
-      h('p', null, view.description),
-      h('p', { className: 'muted' }, detail)
+      h('p', null, updateDescription(view, status)),
+      h('p', { className: 'muted' }, t(detail))
     );
   }
   const primary = action.kind === 'link'
-    ? h('a', { className: 'buttonlike primary', href: RELEASES_URL, target: '_blank', rel: 'noreferrer' }, action.label)
+    ? h('a', { className: 'buttonlike primary', href: RELEASES_URL, target: '_blank', rel: 'noreferrer' }, t(action.label))
     : h('button', {
         type: 'button',
         className: 'primary',
         disabled: action.disabled,
         'aria-busy': action.busy ? 'true' : undefined,
         onClick: () => onAction(action.method)
-      }, action.label);
+      }, t(action.label));
   return h(React.Fragment, null,
-    h('p', null, view.description),
-    h('p', { className: 'muted' }, detail),
+    h('p', null, updateDescription(view, status)),
+    h('p', { className: 'muted' }, t(detail)),
     h('div', { className: 'modal-actions' },
-      view.allowLater ? h('button', { type: 'button', className: 'secondary', onClick: onLater }, 'Later') : null,
+      view.allowLater ? h('button', { type: 'button', className: 'secondary', onClick: onLater }, t('Later')) : null,
       primary
     )
   );
+}
+
+function updateDescription(view, status) {
+  if (view.policyMessage || view.state === 'downloaded') return view.description;
+  const version = view.minimumVersion || '';
+  if (view.state === 'emergency_blocked') return t`Rel.AI MCP v${view.currentVersion || t('this version')} needs an urgent update before Rel.AI can work with ChatGPT again.`;
+  if (view.state === 'required') return t`This Rel.AI MCP version is no longer supported. Update to v${version || t('the current release')} or newer to continue.`;
+  if (view.state === 'deprecated') return view.deadline
+    ? t`Support for this version ends on ${view.deadline}. Update to v${version || t('the current release')} or newer before then.`
+    : t`Support for this version is ending. Update to v${version || t('the current release')} or newer soon to stay supported.`;
+  if (view.state === 'recommended') return t`Rel.AI MCP v${version || t('a newer version')} or newer is recommended.`;
+  if (view.state === 'available') return t`Rel.AI MCP v${cleanVersion(status.availableVersion)} is available.`;
+  if (view.state === 'installing') return cleanVersion(status.availableVersion)
+    ? t`Installing Rel.AI MCP v${cleanVersion(status.availableVersion)}…`
+    : t('Installing the Rel.AI MCP update…');
+  return t(view.description);
 }
 
 function cleanVersion(value) {

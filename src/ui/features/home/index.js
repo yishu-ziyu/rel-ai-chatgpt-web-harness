@@ -1,3 +1,4 @@
+import { t } from '../../i18n.js';
 import { connectionStateFor, connectionSummary, hasObservedMcpConnection, hasObservedMcpToolCall } from '../../connection-state.js';
 import { getWorkspaceFilter } from '../../router.js';
 import { workSessionStateView } from '../../task-identity.js';
@@ -27,7 +28,7 @@ export function resolveBridgeState({ findings = [], connectionState }) {
   if (connection.tone !== 'ok') {
     return {
       tone: connection.tone === 'bad' ? 'bad' : 'warn',
-      kicker: 'Connection status',
+      kicker: t('Connection status'),
       title: connection.title,
       description: connection.message
     };
@@ -35,24 +36,24 @@ export function resolveBridgeState({ findings = [], connectionState }) {
   if (findings.some(item => item?.severity === 'error')) {
     return {
       tone: 'bad',
-      kicker: 'Needs attention',
-      title: 'Rel.AI is connected, but a problem needs attention.',
-      description: 'Rel.AI can connect to ChatGPT, but one or more issues should be resolved before automated changes.'
+      kicker: t('Needs attention'),
+      title: t('Rel.AI is connected, but a problem needs attention.'),
+      description: t('Rel.AI can connect to ChatGPT, but one or more issues should be resolved before automated changes.')
     };
   }
   if (findings.some(item => item?.severity === 'warning')) {
     return {
       tone: 'warn',
-      kicker: 'Connected with warning',
-      title: 'Rel.AI is connected and ready.',
-      description: 'Automated changes are available. Review the warning when convenient.'
+      kicker: t('Connected with warning'),
+      title: t('Rel.AI is connected and ready.'),
+      description: t('Automated changes are available. Review the warning when convenient.')
     };
   }
   return {
     tone: 'good',
-    kicker: 'Connection ready',
-    title: 'ChatGPT can work on your projects.',
-    description: 'Rel.AI is connected and ready for ChatGPT to use on your projects.'
+    kicker: t('Connection ready'),
+    title: t('ChatGPT can work on your projects.'),
+    description: t('Rel.AI is connected and ready for ChatGPT to use on your projects.')
   };
 }
 
@@ -109,7 +110,7 @@ export function homeAnalyticsView(scope = {}) {
   const workspaceScoped = scope.kind === 'workspace';
   const activeProjects = (Array.isArray(scope.workspaces) ? scope.workspaces : []).filter(item => Number(item.toolCalls || 0) > 0).length;
   return {
-    heading: workspaceScoped ? `${scope.label} activity` : 'Activity',
+    heading: workspaceScoped ? t`${scope.label} activity` : 'Activity',
     workspaceScoped,
     workspace: String(scope.workspace || ''),
     metrics: [
@@ -117,12 +118,12 @@ export function homeAnalyticsView(scope = {}) {
       {
         label: 'Successful actions',
         value: completed ? formatPercent(scope.operationSuccessRate) : '—',
-        detail: completed ? `${formatInteger(completed)} completed` : 'No completed actions'
+        detail: completed ? t`${formatInteger(completed)} completed` : t('No completed actions')
       },
       {
         label: 'Average time',
         value: completed ? formatAnalyticsDuration(scope.averageDuration) : '—',
-        detail: completed ? 'Per completed action' : ''
+        detail: completed ? t('Per completed action') : ''
       },
       workspaceScoped
         ? { label: 'Total execution time', value: completed ? formatAnalyticsDuration(scope.executionMs) : '—', detail: '' }
@@ -130,7 +131,7 @@ export function homeAnalyticsView(scope = {}) {
     ],
     contextSummary: analyticsContextSummary(scope, actions),
     errorSummary: internalErrors
-      ? `${formatInteger(internalErrors)} Rel.AI internal ${pluralLabel(internalErrors, 'error')}`
+      ? t`${formatInteger(internalErrors)} Rel.AI internal ${t(pluralLabel(internalErrors, 'error'))}`
       : '',
     pulse: homeAnalyticsPulseView(scope.points)
   };
@@ -150,7 +151,7 @@ function homeAnalyticsPulseView(points = []) {
   return {
     empty: false,
     values,
-    summary: `Action activity across the latest 24 UTC-hour buckets. ${formatInteger(total)} total actions. Peak ${formatInteger(peak)} ${pluralLabel(peak, 'action')} ${hoursAgo ? `${hoursAgo} ${pluralLabel(hoursAgo, 'hour')} ago` : 'in the current hour'}. Current hour ${formatInteger(latest)} ${pluralLabel(latest, 'action')}. Overall trend ${trend}.`
+    summary: t`Action activity across the latest 24 UTC-hour buckets. ${formatInteger(total)} total actions. Peak ${formatInteger(peak)} ${t(pluralLabel(peak, 'action'))} ${hoursAgo ? t`${hoursAgo} hours ago` : t('in the current hour')}. Current hour ${formatInteger(latest)} ${t(pluralLabel(latest, 'action'))}. Overall trend ${t(trend)}.`
   };
 }
 
@@ -165,9 +166,9 @@ function overviewTimestamp(task) {
 
 function analyticsContextSummary(scope = {}, actions = 0) {
   const topProject = Array.isArray(scope.workspaces) ? scope.workspaces[0] : null;
-  if (!actions) return 'No activity';
-  if (scope.kind !== 'workspace' && topProject?.workspace) return `Most active project: ${topProject.workspace}`;
-  return `${formatInteger(actions)} ${pluralLabel(actions, 'action')} in the latest 24 UTC-hour buckets`;
+  if (!actions) return t('No activity');
+  if (scope.kind !== 'workspace' && topProject?.workspace) return t`Most active project: ${topProject.workspace}`;
+  return t`${formatInteger(actions)} ${t(pluralLabel(actions, 'action'))} in the latest 24 UTC-hour buckets`;
 }
 
 function formatInteger(value) {

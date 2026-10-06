@@ -1,6 +1,8 @@
 import * as path from 'node:path';
 import { importResourceModule } from './resource-path.js';
 
+const { t } = await importResourceModule('src/ui/i18n.js');
+
 const { readJsonFile, writeJsonAtomic } = await importResourceModule('src/durableState.ts');
 const { errorGuidance } = await importResourceModule('src/contracts/errors.ts');
 
@@ -94,7 +96,7 @@ function createDesktopNotifications(options = {}) {
       onLog(technicalMessage, { source: 'desktop-notifications', level: 'error', code: 'notification_preferences_save_failed' });
       return {
         ok: false,
-        error: 'Desktop notification settings could not be saved. Try again. Open Troubleshooting if the problem continues.',
+        error: t('Desktop notification settings could not be saved. Try again. Open Troubleshooting if the problem continues.'),
         preferences: getPreferences()
       };
     }
@@ -185,26 +187,26 @@ function createDesktopNotifications(options = {}) {
     if (currentState === 'error') {
       const guidance = errorGuidance(current.errorCode);
       return show('errors', {
-        title: 'Rel.AI needs attention',
-        body: cleanText(`${guidance.title}. ${guidance.recovery}`, 220)
+        title: t('Rel.AI needs attention'),
+        body: cleanText(t`${t(guidance.title)}. ${t(guidance.recovery)}`, 220)
       });
     }
     if (currentState === 'ready') {
       return show('connectionStatus', {
-        title: 'Connection ready',
-        body: 'The secure ChatGPT connection is active and configured workspaces are available.'
+        title: t('Connection ready'),
+        body: t('The secure ChatGPT connection is active and configured workspaces are available.')
       });
     }
     if (currentState === 'authorization_required') {
       return show('connectionStatus', {
-        title: 'ChatGPT authorization required',
-        body: 'Open Rel.AI to approve the current ChatGPT connection.'
+        title: t('ChatGPT authorization required'),
+        body: t('Open Rel.AI to approve the current ChatGPT connection.')
       });
     }
     if (currentState === 'stopped' && previousState !== 'stopped') {
       return show('connectionStatus', {
-        title: 'Rel.AI service stopped',
-        body: 'The local service and public ChatGPT connection are no longer running.'
+        title: t('Rel.AI service stopped'),
+        body: t('The local service and public ChatGPT connection are no longer running.')
       });
     }
     return false;
@@ -215,22 +217,22 @@ function createDesktopNotifications(options = {}) {
     const version = cleanText(status.availableVersion, 80);
     if (state === 'available' && version) {
       return showOnce(`update:available:${version}`, 'applicationUpdates', {
-        title: 'Update available',
-        body: `Rel.AI MCP ${version} is available to download.`
+        title: t('Update available'),
+        body: t`Rel.AI MCP ${version} is available to download.`
       }, { version });
     }
     if (state === 'downloaded' && version && status.integrityVerified === true) {
       return showOnce(`update:downloaded:${version}`, 'applicationUpdates', {
-        title: 'Update ready to install',
-        body: `Rel.AI MCP ${version} is downloaded and ready to install.`
+        title: t('Update ready to install'),
+        body: t`Rel.AI MCP ${version} is downloaded and ready to install.`
       }, { version });
     }
     if (state === 'error') {
       const error = cleanText(status.error, 200);
       const guidance = errorGuidance('update_failed');
       return showOnce(`update:error:${status.errorCode || ''}:${error}`, 'errors', {
-        title: 'Application update failed',
-        body: guidance.recovery
+        title: t('Application update failed'),
+        body: t(guidance.recovery)
       });
     }
     return false;

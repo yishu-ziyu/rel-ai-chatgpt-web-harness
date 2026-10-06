@@ -1,3 +1,4 @@
+import { getResolvedLanguage, t } from '../../i18n.js';
 import { normalizeFailureCategory } from '../../../analyticsFailureCategory.js';
 import {
   isPrimaryAnalyticsUseCase,
@@ -29,7 +30,7 @@ const GROUP_KEYS = Object.freeze(['toolCalls', 'successes', 'failures', 'executi
 
 export function analyticsBounds(range = '24h', { now = new Date(), customStart = '', customEnd = '' } = {}) {
   const endNow = new Date(now);
-  if (!Number.isFinite(endNow.getTime())) throw new Error('The selected analytics range has an invalid time.');
+  if (!Number.isFinite(endNow.getTime())) throw new Error(t('The selected analytics range has an invalid time.'));
   let start;
   let end = endNow;
   if (range === 'month') {
@@ -37,11 +38,11 @@ export function analyticsBounds(range = '24h', { now = new Date(), customStart =
   } else if (range === 'custom') {
     start = parseDateStart(customStart);
     const inclusiveEnd = parseDateStart(customEnd);
-    if (!start || !inclusiveEnd) throw new Error('Choose both custom dates.');
+    if (!start || !inclusiveEnd) throw new Error(t('Choose both custom dates.'));
     end = new Date(inclusiveEnd.getTime() + 24 * HOUR_MS);
     if (end > endNow) end = endNow;
-    if (start >= end) throw new Error('Custom analytics start must be before the end date.');
-    if (end.getTime() - start.getTime() > 90 * 24 * HOUR_MS) throw new Error('Custom analytics ranges are limited to 90 days.');
+    if (start >= end) throw new Error(t('Custom analytics start must be before the end date.'));
+    if (end.getTime() - start.getTime() > 90 * 24 * HOUR_MS) throw new Error(t('Custom analytics ranges are limited to 90 days.'));
   } else {
     end = ceilUtcHour(end);
     const duration = RANGE_MS[range] || RANGE_MS['24h'];
@@ -68,9 +69,9 @@ export function analyticsMonths(bounds) {
 }
 
 export function normalizeUsageSnapshot(snapshot, requestedMonth = '') {
-  if (!snapshot || typeof snapshot !== 'object' || snapshot.ok === false) throw new Error(String(snapshot?.error || 'Analytics unavailable.'));
+  if (!snapshot || typeof snapshot !== 'object' || snapshot.ok === false) throw new Error(String(snapshot?.error || t('Analytics unavailable.')));
   const month = normalizeMonth(snapshot.month || requestedMonth);
-  if (!month) throw new Error('Analytics are unavailable for the selected month.');
+  if (!month) throw new Error(t('Analytics are unavailable for the selected month.'));
   return {
     month,
     privacy: normalizePrivacy(snapshot.privacy),
@@ -224,7 +225,7 @@ function normalizePrivacy(value) {
 }
 
 function normalizeTotals(value) {
-  if (!value || typeof value !== 'object') throw new Error('Analytics are unavailable because monthly totals were not returned.');
+  if (!value || typeof value !== 'object') throw new Error(t('Analytics are unavailable because monthly totals were not returned.'));
   const result = {};
   for (const key of ['requests', 'toolCalls', 'successes', 'failures', 'executionMs', 'activeDays']) result[key] = exactNumber(value[key], key);
   return { ...result, ...normalizeReliability(value, 'totals') };
@@ -437,7 +438,7 @@ function parseDateStart(value) {
 function rangeLabel(range, start, end) {
   const known = ANALYTICS_RANGES.find(([key]) => key === range)?.[1];
   if (range !== 'custom') return known || 'Last 24 hours';
-  const format = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+  const format = new Intl.DateTimeFormat(getResolvedLanguage(), { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
   return `${format.format(start)} – ${format.format(new Date(end.getTime() - 1))}`;
 }
 
@@ -468,6 +469,6 @@ function optionalNumber(value, fallback, field) {
 
 function exactNumber(value, field) {
   const number = Number(value);
-  if (!Number.isFinite(number) || number < 0) throw new Error(`Analytics are unavailable because ${field} has an invalid value.`);
+  if (!Number.isFinite(number) || number < 0) throw new Error(t`Analytics are unavailable because ${field} has an invalid value.`);
   return number;
 }

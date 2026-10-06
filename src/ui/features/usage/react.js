@@ -7,6 +7,8 @@ import {
   isPrimaryAnalyticsUseCase
 } from '../../../contracts/analyticsTaxonomy.js';
 import { Icon } from '../../components/icons.js';
+import { getResolvedLanguage, t } from '../../i18n.js';
+import { useUiLanguage } from '../../i18n-react.js';
 import { getRouteParams, getWorkspaceFilter, replaceRouteParams, routeHref } from '../../router.js';
 import { ANALYTICS_RANGES, analyticsBounds, workspaceOptions } from './range-model.js';
 import { loadAnalyticsData } from './data.js';
@@ -34,6 +36,7 @@ const METRIC_ICONS = Object.freeze({
 
 export function createUsageRoute(useDashboardSlices) {
   return function UsageRoute() {
+    useUiLanguage();
     const { live } = useDashboardSlices(USAGE_STORE_KEYS);
     const params = useMemo(() => getRouteParams(), []);
     const requestedRange = params.get('range');
@@ -76,7 +79,7 @@ export function createUsageRoute(useDashboardSlices) {
         analyticsRef.current = result;
         setAnalytics(result);
         setLoadState({ status: 'ready', message: '' });
-        setStatus(`Analytics updated for ${bounds.label}.`);
+        setStatus(t`Analytics updated for ${t(bounds.label)}.`);
       } catch (error) {
         if (!silent || !analyticsRef.current) setLoadState({ status: 'error', message: messageOf(error) });
         setStatus(silent ? 'Analytics could not be refreshed.' : 'Analytics could not be loaded.');
@@ -146,14 +149,14 @@ export function createUsageRoute(useDashboardSlices) {
           start
         }),
         h(PrivacyCard, { privacy: analytics?.privacy }),
-        h('div', { className: 'sr-only', 'data-usage-status': true, role: 'status', 'aria-live': 'polite', 'aria-atomic': 'true' }, status),
+        h('div', { className: 'sr-only', 'data-usage-status': true, role: 'status', 'aria-live': 'polite', 'aria-atomic': 'true' }, t(status)),
         h('div', { className: 'usage-content', 'data-usage-content': true, 'aria-busy': loadState.status === 'loading' ? 'true' : undefined },
           loadState.status === 'loading' && !analytics
-            ? h('div', { className: 'usage-loading' }, 'Loading analytics…')
+            ? h('div', { className: 'usage-loading' }, t('Loading analytics…'))
             : loadState.status === 'error'
               ? h('section', { className: 'usage-unavailable empty-state', 'data-usage-unavailable': true },
-                  h('strong', null, 'Analytics unavailable'), h('p', null, loadState.message || 'Analytics could not be loaded.'),
-                  h('button', { type: 'button', className: 'secondary', 'data-usage-retry': true, onClick: () => setRefreshToken(value => value + 1) }, 'Retry')
+                  h('strong', null, t('Analytics unavailable')), h('p', null, loadState.message || t('Analytics could not be loaded.')),
+                  h('button', { type: 'button', className: 'secondary', 'data-usage-retry': true, onClick: () => setRefreshToken(value => value + 1) }, t('Retry'))
                 )
               : analytics ? h(UsageContent, { bounds: analytics.bounds, current: analytics.current, previous: analytics.previous }) : null
         )
@@ -165,37 +168,37 @@ export function createUsageRoute(useDashboardSlices) {
 function AnalyticsToolbar({ end, loading, onDateChange, onRangeChange, onRefresh, onWorkspaceChange, options, range, selectedWorkspace, start }) {
   return h('div', { className: 'feature-toolbar usage-toolbar' },
     h('div', { className: 'usage-toolbar-heading' },
-      h('div', { className: 'usage-title-row' }, h(Icon, { name: 'usage', size: 20 }), h('h2', null, 'Analytics')),
-      h('p', null, 'Analytics are stored on this computer. Rel.AI records aggregate action categories and work-type labels, not prompts, file paths, command output, or action results.')
+      h('div', { className: 'usage-title-row' }, h(Icon, { name: 'usage', size: 20 }), h('h2', null, t('Analytics'))),
+      h('p', null, t('Analytics are stored on this computer. Rel.AI records aggregate action categories and work-type labels, not prompts, file paths, command output, or action results.'))
     ),
     h('div', { className: 'usage-toolbar-controls' },
       h('label', { className: 'usage-workspace-control' },
-        h('span', null, 'Project'),
+        h('span', null, t('Project')),
         h('select', { 'data-usage-workspace': true, value: selectedWorkspace, onChange: event => onWorkspaceChange(event.target.value) },
-          h('option', { value: '' }, 'All projects'),
+          h('option', { value: '' }, t('All projects')),
           options.map(option => h('option', { key: option.workspace, value: option.workspace }, option.workspace))
         )
       ),
       h('div', { className: 'usage-range-control' },
-        h('span', null, 'Range'),
+        h('span', null, t('Range')),
         h('select', { 'data-usage-range': true, hidden: true, value: range, onChange: event => onRangeChange(event.target.value) },
-          ANALYTICS_RANGES.map(([key, label]) => h('option', { key, value: key }, label))
+          ANALYTICS_RANGES.map(([key, label]) => h('option', { key, value: key }, t(label)))
         ),
-        h('div', { className: 'usage-range-switch', role: 'group', 'aria-label': 'Analytics range' },
+        h('div', { className: 'usage-range-switch', role: 'group', 'aria-label': t('Analytics range') },
           ANALYTICS_RANGES.map(([key, label]) => h('button', {
             key,
             type: 'button',
             'data-usage-range-option': key,
-            'aria-label': label,
-            title: label,
+            'aria-label': t(label),
+            title: t(label),
             'aria-pressed': range === key ? 'true' : 'false',
             onClick: () => onRangeChange(key)
-          }, rangeButtonLabel(key, label)))
+          }, t(rangeButtonLabel(key, label))))
         )
       ),
       h('div', { className: 'usage-custom-range', 'data-usage-custom-range': true, hidden: range !== 'custom' },
-        h('label', { htmlFor: 'usage-start' }, h('span', null, 'From'), h('input', { id: 'usage-start', type: 'date', 'data-usage-start': true, value: start, onChange: event => onDateChange('start', event.target.value) })),
-        h('label', { htmlFor: 'usage-end' }, h('span', null, 'To'), h('input', { id: 'usage-end', type: 'date', 'data-usage-end': true, value: end, onChange: event => onDateChange('end', event.target.value) }))
+        h('label', { htmlFor: 'usage-start' }, h('span', null, t('From')), h('input', { id: 'usage-start', type: 'date', 'data-usage-start': true, value: start, onChange: event => onDateChange('start', event.target.value) })),
+        h('label', { htmlFor: 'usage-end' }, h('span', null, t('To')), h('input', { id: 'usage-end', type: 'date', 'data-usage-end': true, value: end, onChange: event => onDateChange('end', event.target.value) }))
       ),
       h('button', {
         type: 'button',
@@ -203,7 +206,7 @@ function AnalyticsToolbar({ end, loading, onDateChange, onRangeChange, onRefresh
         'data-usage-refresh': true,
         disabled: loading,
         onClick: onRefresh
-      }, h(Icon, { name: 'refresh', className: loading ? 'is-spinning' : '' }), h('span', null, loading ? 'Loading…' : 'Refresh'))
+      }, h(Icon, { name: 'refresh', className: loading ? 'is-spinning' : '' }), h('span', null, t(loading ? 'Loading…' : 'Refresh')))
     )
   );
 }
@@ -212,10 +215,10 @@ function PrivacyCard({ privacy }) {
   if (!privacy) return h('div', { 'data-usage-privacy': true });
   const copy = analyticsPrivacyCopy(privacy);
   return h('div', { 'data-usage-privacy': true },
-    h('section', { className: 'card usage-privacy-card', 'aria-label': 'Analytics privacy' },
+    h('section', { className: 'card usage-privacy-card', 'aria-label': t('Analytics privacy') },
       h('div', { className: 'card-body usage-privacy-body' },
         h('div', { className: 'usage-privacy-copy' },
-          h('strong', { className: 'usage-privacy-title' }, h(Icon, { name: 'reliability', size: 17 }), h('span', null, 'Data & privacy')),
+          h('strong', { className: 'usage-privacy-title' }, h(Icon, { name: 'reliability', size: 17 }), h('span', null, t('Data & privacy'))),
           h('span', null, copy.retention),
           h('span', null, copy.telemetry)
         )
@@ -230,29 +233,29 @@ function UsageContent({ bounds, current, previous }) {
   const fallback = current.usedMonthlyFallback && current.points.every(point => point.toolCalls === 0 && point.requests === 0);
   const infrastructureFailures = Number(current.infrastructureFailures || 0);
   return h(React.Fragment, null,
-    h('section', { className: 'usage-overview', 'aria-label': `${current.label} analytics for ${bounds.label}` },
-      fallback ? h('p', { className: 'usage-series-note' }, 'Hourly trends are unavailable for older monthly totals.') : null,
+    h('section', { className: 'usage-overview', 'aria-label': t`${current.kind === 'workspace' ? current.label : t('All projects')} analytics for ${t(bounds.label)}` },
+      fallback ? h('p', { className: 'usage-series-note' }, t('Hourly trends are unavailable for older monthly totals.')) : null,
       infrastructureFailures
         ? h('div', { className: 'connection-notice bad usage-infrastructure-alert', role: 'status' },
             h(Icon, { name: 'warning', size: 16 }),
-            h('strong', null, `${integer(infrastructureFailures)} Rel.AI internal ${infrastructureFailures === 1 ? 'error' : 'errors'}`),
-            h('span', null, `Confirmed infrastructure ${infrastructureFailures === 1 ? 'failure' : 'failures'} in this range.`),
-            h('a', { href: routeHref('diagnostics') }, 'Open Troubleshooting')
+            h('strong', null, infrastructureFailures === 1 ? t`${integer(infrastructureFailures)} Rel.AI internal error` : t`${integer(infrastructureFailures)} Rel.AI internal errors`),
+            h('span', null, t(infrastructureFailures === 1 ? 'Confirmed infrastructure failure in this range.' : 'Confirmed infrastructure failures in this range.')),
+            h('a', { href: routeHref('diagnostics') }, t('Open Troubleshooting'))
           )
         : null,
       h('div', { className: 'usage-metrics' }, analyticsMetrics(current, previous).map(metric => h(Metric, { key: metric.key, metric })))
     ),
     h('section', { className: 'card usage-timeline-card', 'data-usage-timeline': true },
       h('div', { className: 'card-head usage-timeline-head' },
-        h('div', { className: 'usage-card-title' }, h(Icon, { name: 'activity', size: 17 }), h('h3', null, 'Activity')),
-        h('div', { className: 'usage-chart-switch', role: 'group', 'aria-label': 'Chart metric' }, CHART_METRICS.map(([key, label, icon]) => h('button', {
+        h('div', { className: 'usage-card-title' }, h(Icon, { name: 'activity', size: 17 }), h('h3', null, t('Activity'))),
+        h('div', { className: 'usage-chart-switch', role: 'group', 'aria-label': t('Chart metric') }, CHART_METRICS.map(([key, label, icon]) => h('button', {
           key,
           type: 'button',
           className: `secondary compact-button${chartKey === key ? ' active' : ''}`,
           'data-usage-chart': key,
           'aria-pressed': chartKey === key ? 'true' : 'false',
           onClick: () => setChartKey(key)
-        }, h(Icon, { name: icon, size: 15 }), h('span', null, label))))
+        }, h(Icon, { name: icon, size: 15 }), h('span', null, t(label)))))
       ),
       h('div', { className: 'card-body usage-timeline-body', 'data-usage-chart-body': true },
         h(Timeline, { bounds, points: current.points, metricKey: chart[0], label: chart[1] })
@@ -260,42 +263,42 @@ function UsageContent({ bounds, current, previous }) {
     ),
     h('div', { className: 'usage-side-by-side usage-distribution-grid' },
       h(DistributionCard, {
-        title: 'Use cases',
-        description: `${integer(current.categorizedActions)} categorized ${Number(current.categorizedActions) === 1 ? 'action' : 'actions'}`,
+        title: t('Use cases'),
+        description: Number(current.categorizedActions) === 1 ? t`${integer(current.categorizedActions)} categorized action` : t`${integer(current.categorizedActions)} categorized actions`,
         rows: current.useCases,
         valueKey: 'toolCalls',
         total: current.categorizedActions,
-        labelFor: row => analyticsUseCaseLabel(row.useCase),
-        empty: Number(current.toolCalls || 0) > 0 ? 'Use-case analytics are available for activity recorded after this update.' : 'No activity in this range.',
+        labelFor: row => t(analyticsUseCaseLabel(row.useCase)),
+        empty: Number(current.toolCalls || 0) > 0 ? t('Use-case analytics are available for activity recorded after this update.') : t('No activity in this range.'),
         note: current.legacyUncategorizedActions > 0
-          ? `${integer(current.legacyUncategorizedActions)} earlier ${Number(current.legacyUncategorizedActions) === 1 ? 'action does' : 'actions do'} not include use-case data.`
+          ? Number(current.legacyUncategorizedActions) === 1 ? t`${integer(current.legacyUncategorizedActions)} earlier action does not include use-case data.` : t`${integer(current.legacyUncategorizedActions)} earlier actions do not include use-case data.`
           : ''
       }),
       h(DistributionCard, {
-        title: 'Work types',
-        description: `${integer(current.completedTasks)} completed work ${Number(current.completedTasks) === 1 ? 'session' : 'sessions'}`,
+        title: t('Work types'),
+        description: Number(current.completedTasks) === 1 ? t`${integer(current.completedTasks)} completed work session` : t`${integer(current.completedTasks)} completed work sessions`,
         rows: current.taskTypes,
         valueKey: 'tasks',
         total: current.completedTasks,
-        labelFor: row => analyticsTaskIntentLabel(row.intent),
+        labelFor: row => t(analyticsTaskIntentLabel(row.intent)),
         unit: 'task',
         empty: Number(current.toolCalls || 0) > 0
-          ? 'No classified completed work sessions in this range. Work-type counts begin with tasks completed after this update.'
-          : 'No completed work sessions in this range.'
+          ? t('No classified completed work sessions in this range. Work-type counts begin with tasks completed after this update.')
+          : t('No completed work sessions in this range.')
       })
     ),
     h(ActivityMatrix, { current }),
-    h(ActivityBars, { title: 'Actions by tool', rows: current.tools, kind: 'tool' }),
+    h(ActivityBars, { title: t('Actions by tool'), rows: current.tools, kind: 'tool' }),
     current.kind === 'workspace'
       ? h(FailureCategories, { rows: current.failureCategories, totalFailures: current.failures })
       : h('div', { className: 'usage-side-by-side' },
           h(FailureCategories, { rows: current.failureCategories, totalFailures: current.failures }),
-          h(ActivityBars, { title: 'Project activity', rows: current.workspaces, kind: 'workspace' })
+          h(ActivityBars, { title: t('Project activity'), rows: current.workspaces, kind: 'workspace' })
         )
   );
 }
 
-function DistributionCard({ title, description = '', rows = [], valueKey, total = 0, labelFor, unit = 'action', empty = 'No activity in this range.', note = '' }) {
+function DistributionCard({ title, description = '', rows = [], valueKey, total = 0, labelFor, unit = 'action', empty = t('No activity in this range.'), note = '' }) {
   const visible = [...rows].filter(row => Number(row?.[valueKey] || 0) > 0).sort((a, b) => Number(b?.[valueKey] || 0) - Number(a?.[valueKey] || 0));
   const max = Math.max(1, ...visible.map(row => Number(row?.[valueKey] || 0)));
   return h('section', { className: 'card usage-breakdown usage-bar-card usage-distribution-card' },
@@ -308,7 +311,7 @@ function DistributionCard({ title, description = '', rows = [], valueKey, total 
             const value = Number(row?.[valueKey] || 0);
             const label = labelFor(row);
             const percentage = total > 0 ? value / total * 100 : 0;
-            const valueText = `${integer(value)} ${value === 1 ? unit : `${unit}s`}, ${formatShare(percentage)}`;
+            const valueText = `${integer(value)} ${t(value === 1 ? unit : `${unit}s`)}, ${formatShare(percentage)}`;
             return h('div', { key: `${label}-${index}`, className: 'usage-bar-row usage-distribution-row' },
               h('span', { className: 'usage-bar-label', title: label }, label),
               h('progress', { max, value, 'aria-label': `${label}: ${valueText}`, 'aria-valuetext': valueText }, integer(value)),
@@ -334,40 +337,40 @@ function ActivityMatrix({ current }) {
     value: Number(row.toolCalls || 0),
     useCase: row.useCase,
     intent: row.intent,
-    useCaseLabel: analyticsUseCaseLabel(row.useCase),
-    intentLabel: analyticsTaskIntentLabel(row.intent),
+    useCaseLabel: t(analyticsUseCaseLabel(row.useCase)),
+    intentLabel: t(analyticsTaskIntentLabel(row.intent)),
     share: Number(rowTotals.get(row.intent) || 0) > 0 ? Number(row.toolCalls || 0) / Number(rowTotals.get(row.intent)) * 100 : 0
   })).filter(cell => cell.x >= 0 && cell.y >= 0 && cell.value > 0);
   const untrackedNote = Number(current.untrackedActions || 0) > 0
-    ? `${integer(current.untrackedActions)} ${Number(current.untrackedActions) === 1 ? 'action was' : 'actions were'} not linked to a work session and ${Number(current.untrackedActions) === 1 ? 'is' : 'are'} excluded from this matrix.`
+    ? Number(current.untrackedActions) === 1 ? t`${integer(current.untrackedActions)} action was not linked to a work session and is excluded from this matrix.` : t`${integer(current.untrackedActions)} actions were not linked to a work session and are excluded from this matrix.`
     : '';
   return h('section', { className: 'card usage-breakdown usage-matrix-card', 'data-usage-matrix': true },
     h('div', { className: 'card-head' },
       h('div', null,
-        h('h3', null, 'Work type × use case'),
-        h('p', null, `${integer(trackedActions)} task-linked ${trackedActions === 1 ? 'action' : 'actions'}. Bubble size shows action count.`)
+        h('h3', null, t('Work type × use case')),
+        h('p', null, trackedActions === 1 ? t`${integer(trackedActions)} task-linked action. Bubble size shows action count.` : t`${integer(trackedActions)} task-linked actions. Bubble size shows action count.`)
       )
     ),
     h('div', { className: 'card-body usage-matrix-body' },
       cells.length && intents.length
         ? h('div', { className: 'usage-matrix-scroll' },
             h('div', { className: 'usage-matrix-stage' },
-              h(Suspense, { fallback: h('div', { className: 'usage-chart-empty', role: 'status' }, 'Loading matrix…') },
+              h(Suspense, { fallback: h('div', { className: 'usage-chart-empty', role: 'status' }, t('Loading matrix…')) },
                 h(AnalyticsBubbleMatrixChart, {
                   cells,
-                  xLabels: useCases.map(item => analyticsUseCaseShortLabel(item.id)),
-                  yLabels: intents.map(intent => analyticsTaskIntentLabel(intent)),
+                  xLabels: useCases.map(item => t(analyticsUseCaseShortLabel(item.id))),
+                  yLabels: intents.map(intent => t(analyticsTaskIntentLabel(intent))),
                   className: 'usage-matrix-chart',
-                  ariaLabel: 'Work type by use case activity matrix'
+                  ariaLabel: t('Work type by use case activity matrix')
                 })
               )
             )
           )
         : h('div', { className: 'usage-breakdown-empty' }, Number(current.untrackedActions || 0) > 0
-            ? 'No task-linked use-case activity in this range.'
+            ? t('No task-linked use-case activity in this range.')
             : Number(current.toolCalls || 0) > 0
-              ? 'The work-type matrix is available for task-linked activity recorded after this update.'
-              : 'No activity in this range.'),
+              ? t('The work-type matrix is available for task-linked activity recorded after this update.')
+              : t('No activity in this range.')),
       untrackedNote ? h('p', { className: 'usage-card-note' }, untrackedNote) : null
     )
   );
@@ -386,7 +389,7 @@ function Metric({ metric }) {
     h('div', { className: 'usage-metric-label-row' },
       h('span', { className: 'usage-metric-label-main' },
         h(Icon, { name: METRIC_ICONS[metric.key] || 'usage', className: 'usage-metric-icon', size: 16 }),
-        h('span', { className: 'usage-metric-label' }, metric.label)
+        h('span', { className: 'usage-metric-label' }, t(metric.label))
       ),
       metric.help ? h('span', {
         className: `usage-metric-help${open ? ' is-open' : ''}`,
@@ -398,7 +401,7 @@ function Metric({ metric }) {
         h('button', {
           type: 'button',
           className: 'usage-metric-help-trigger',
-          'aria-label': `About ${metric.label}`,
+          'aria-label': t`About ${t(metric.label)}`,
           'aria-describedby': helpId,
           'aria-expanded': open ? 'true' : 'false',
           onClick: () => setOpen(value => !value),
@@ -409,14 +412,14 @@ function Metric({ metric }) {
             }
           }
         }, h(Icon, { name: 'help', size: 17 })),
-        h('span', { id: helpId, role: 'tooltip', className: 'usage-metric-tooltip' }, metric.help)
+        h('span', { id: helpId, role: 'tooltip', className: 'usage-metric-tooltip' }, t(metric.help))
       ) : null
     ),
     h('div', { className: 'usage-metric-value' },
       h('strong', null, metric.value),
       metric.delta ? h('small', { className: `usage-delta ${metric.delta.tone || ''}`.trim() }, metric.delta.text) : null
     ),
-    metric.detail ? h('small', { className: 'usage-metric-detail' }, metric.detail) : null,
+    metric.detail ? h('small', { className: 'usage-metric-detail' }, t(metric.detail)) : null,
     sparkValues.length
       ? h(Suspense, { fallback: h('span', { className: 'usage-sparkline-empty', 'aria-hidden': 'true' }) },
         h(SparkChart, { values: sparkValues, className: `usage-sparkline ${metric.tone}`.trim(), tone: metric.tone }))
@@ -435,7 +438,7 @@ function Timeline({ bounds, points = [], metricKey, label }) {
     setActiveIndex(Math.max(0, model.latestIndex || 0));
   }, [signature, model.latestIndex]);
 
-  if (model.empty) return h('div', { className: 'usage-chart-empty' }, sparseMetric ? 'No measured samples in this range.' : 'No activity in this range.');
+  if (model.empty) return h('div', { className: 'usage-chart-empty' }, sparseMetric ? t('No measured samples in this range.') : t('No activity in this range.'));
 
   const safeIndex = Math.max(0, Math.min(model.latestIndex, activeIndex));
   const point = points[safeIndex];
@@ -447,21 +450,21 @@ function Timeline({ bounds, points = [], metricKey, label }) {
   const detailedLabels = points.map(item => formatPointTime(item, bounds, true));
   const firstMeasuredIndex = values.findIndex(value => value !== null);
   const leadingGapNote = sparseMetric && firstMeasuredIndex > 0
-    ? ` No completed-action samples exist before ${detailedLabels[firstMeasuredIndex]}; the solid line begins at the first measured sample.`
+    ? t` No completed-action samples exist before ${detailedLabels[firstMeasuredIndex]}; the solid line begins at the first measured sample.`
     : '';
   const formatValue = value => formatChartValue(value, label);
   const gapHint = sparseMetric
-    ? ' Hourly data uses UTC buckets; shaded gaps mean no completed actions were recorded in those buckets.'
-    : ' Hourly data uses UTC buckets.';
+    ? t(' Hourly data uses UTC buckets; shaded gaps mean no completed actions were recorded in those buckets.')
+    : t(' Hourly data uses UTC buckets.');
 
   return h('div', { className: 'usage-timeline-plot' },
     h('div', { className: 'usage-chart-readout', id: readoutId },
       h('span', null, selectedTime),
       h('strong', null, selectedValue),
-      h('small', null, safeIndex === model.peakIndex ? 'Peak in this range' : `Peak ${peakValue}`)
+      h('small', null, safeIndex === model.peakIndex ? t('Peak in this range') : t`Peak ${peakValue}`)
     ),
     h('div', { className: 'usage-timeline-stage' },
-      h(Suspense, { fallback: h('div', { className: 'usage-chart-empty', role: 'status' }, 'Loading chart…') },
+      h(Suspense, { fallback: h('div', { className: 'usage-chart-empty', role: 'status' }, t('Loading chart…')) },
         h(AnalyticsTimelineChart, {
         values,
         labels,
@@ -469,15 +472,15 @@ function Timeline({ bounds, points = [], metricKey, label }) {
         className: 'usage-timeline-chart',
         ariaLabel: model.summary,
         ariaDescribedBy: readoutId,
-        valueLabel: label,
+        valueLabel: t(label),
         formatValue,
-        missingValueLabel: sparseMetric ? 'No completed actions' : '',
+        missingValueLabel: sparseMetric ? t('No completed actions') : '',
         peakIndex: model.peakIndex,
         activeIndex: safeIndex,
         onActiveIndexChange: setActiveIndex
         }))
     ),
-    h('div', { className: 'usage-chart-hint' }, `Hover the chart or focus it and use ← / → to inspect exact values.${gapHint}${leadingGapNote}`)
+    h('div', { className: 'usage-chart-hint' }, t`Hover the chart or focus it and use ← / → to inspect exact values.${gapHint}${leadingGapNote}`)
   );
 }
 
@@ -486,17 +489,17 @@ function FailureCategories({ rows = [], totalFailures = 0 }) {
   const max = Math.max(1, ...visible.map(row => row.failures));
   return h('section', { className: 'card usage-breakdown usage-bar-card' },
     h('div', { className: 'card-head' },
-      h('div', null, h('h3', null, 'Unsuccessful actions by reason'), h('p', null, 'Grouped by cause. Recent details are available in Troubleshooting.'))
+      h('div', null, h('h3', null, t('Unsuccessful actions by reason')), h('p', null, t('Grouped by cause. Recent details are available in Troubleshooting.')))
     ),
     h('div', { className: 'card-body' }, visible.length
       ? h('div', { className: 'usage-bar-list' }, visible.map(row => h(BarRow, {
           key: row.category,
-          label: failureCategoryLabel(row.category),
+          label: t(failureCategoryLabel(row.category)),
           value: row.failures,
           max,
           unit: 'failure'
         })))
-      : h('div', { className: 'usage-breakdown-empty' }, Number(totalFailures || 0) > 0 ? 'Problem types are unavailable for older data.' : 'No failures in this range.'))
+      : h('div', { className: 'usage-breakdown-empty' }, Number(totalFailures || 0) > 0 ? t('Problem types are unavailable for older data.') : t('No failures in this range.')))
   );
 }
 
@@ -507,7 +510,7 @@ function ActivityBars({ title, rows = [], kind }) {
     h('div', { className: 'card-head' }, h('h3', null, title)),
     h('div', { className: 'card-body' }, visible.length
       ? h('div', { className: 'usage-bar-list' }, visible.map((row, index) => {
-          const label = kind === 'workspace' ? (row.workspace || 'Unattributed') : (row.tool || 'Unknown tool');
+          const label = kind === 'workspace' ? (row.workspace || t('Unattributed')) : (row.tool || t('Unknown tool'));
           const drilldown = kind === 'workspace' && Boolean(row.workspace);
           const inner = h(BarRowContent, { label, value: row.toolCalls, max, unit: 'action', drilldown });
           return drilldown
@@ -515,12 +518,12 @@ function ActivityBars({ title, rows = [], kind }) {
                 key: row.workspace,
                 className: 'usage-bar-row usage-bar-link',
                 href: routeHref('usage', { workspace: row.workspace }),
-                'aria-label': `View analytics for ${row.workspace}`,
-                title: `View analytics for ${row.workspace}`
+                'aria-label': t`View analytics for ${row.workspace}`,
+                title: t`View analytics for ${row.workspace}`
               }, inner)
             : h('div', { key: `${label}-${index}`, className: 'usage-bar-row' }, inner);
         }))
-      : h('div', { className: 'usage-breakdown-empty' }, 'No activity in this range.'))
+      : h('div', { className: 'usage-breakdown-empty' }, t('No activity in this range.')))
   );
 }
 
@@ -529,7 +532,7 @@ function BarRow({ label, value, max, unit = 'action' }) {
 }
 
 function BarRowContent({ label, value, max, unit = 'action', drilldown = false }) {
-  const valueText = `${integer(value)} ${Number(value) === 1 ? unit : `${unit}s`}`;
+  const valueText = `${integer(value)} ${t(Number(value) === 1 ? unit : `${unit}s`)}`;
   return h(React.Fragment, null,
     h('span', { className: 'usage-bar-label', title: label }, label),
     h('progress', { max, value, 'aria-label': `${label}: ${valueText}`, 'aria-valuetext': valueText }, integer(value)),
@@ -539,7 +542,7 @@ function BarRowContent({ label, value, max, unit = 'action', drilldown = false }
 
 function formatPointTime(point, bounds, detailed) {
   const at = Number(point?.at);
-  if (!Number.isFinite(at)) return detailed ? 'Selected period' : '—';
+  if (!Number.isFinite(at)) return detailed ? t('Selected period') : '—';
   const date = new Date(at);
   const span = Math.max(0, Number(bounds?.end?.getTime?.() || 0) - Number(bounds?.start?.getTime?.() || 0));
   const options = detailed
@@ -549,10 +552,10 @@ function formatPointTime(point, bounds, detailed) {
       : span <= 32 * 24 * 60 * 60 * 1000
         ? { month: 'short', day: 'numeric', timeZone: 'UTC' }
         : { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' };
-  return new Intl.DateTimeFormat(undefined, options).format(date);
+  return new Intl.DateTimeFormat(getResolvedLanguage(), options).format(date);
 }
 
 
 function messageOf(error) {
-  return error instanceof Error ? error.message : String(error || 'Analytics unavailable.');
+  return error instanceof Error ? error.message : String(error || t('Analytics unavailable.'));
 }

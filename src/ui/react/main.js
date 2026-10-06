@@ -18,6 +18,8 @@ import * as AlertDialog from '@radix-ui/react-alert-dialog';
 import * as Dialog from '@radix-ui/react-dialog';
 import { HashRouter, useLocation } from 'react-router-dom';
 import { Icon } from '../components/icons.js';
+import { t } from '../i18n.js';
+import { useUiLanguage } from '../i18n-react.js';
 import { connectionLayerViews, connectionSummary } from '../connection-state.js';
 import { DEVELOPER_FEATURE_CHANGE_EVENT, DEVELOPER_FEATURES, readDeveloperFeatureEnabled } from '../developer-mode.js';
 import { classifyTaskActivity } from '../../taskActivityPresentation.js';
@@ -212,6 +214,7 @@ function updateUi(patch, { sync = false } = {}) {
 
 function useRoutePresentation() {
   const routerLocation = useLocation();
+  const language = useUiLanguage();
   return useMemo(() => {
     const pathname = String(routerLocation.pathname || '').replace(/^\/+/, '') || 'home';
     const routeKey = normalizeRouteKey(`${pathname}${routerLocation.search || ''}`);
@@ -219,21 +222,22 @@ function useRoutePresentation() {
     const section = path.split('/')[0] || 'home';
     const metadata = routeMetadata(path);
     const title = path === 'settings' || path.startsWith('settings/')
-      ? `Settings · ${metadata.label}`
-      : metadata.label;
+      ? t`Settings · ${t(metadata.label)}`
+      : t(metadata.label);
     return Object.freeze({
-      announcement: `${title} page loaded.`,
-      description: metadata.description,
+      announcement: t`${title} page loaded.`,
+      description: t(metadata.description),
       key: routeKey,
       owner: desktopNavigationOwner(section),
       path,
       section,
       title
     });
-  }, [routerLocation.pathname, routerLocation.search]);
+  }, [routerLocation.pathname, routerLocation.search, language]);
 }
 
 function DashboardShell({ desktop = null, onAddWorkspace = null } = {}) {
+  useUiLanguage();
   const data = useDashboardStore();
   const ui = useSyncExternalStore(subscribeUi, () => uiSnapshot, () => uiSnapshot);
   const overlays = useSyncExternalStore(subscribeOverlay, getOverlaySnapshot, getOverlaySnapshot);
@@ -310,7 +314,7 @@ function DashboardShell({ desktop = null, onAddWorkspace = null } = {}) {
 
   return h(React.Fragment, null,
     h(WindowTitlebar, { desktop, title: route.title }),
-    h('a', { href: '#main', className: 'skip-link' }, 'Skip to content'),
+    h('a', { href: '#main', className: 'skip-link' }, t('Skip to content')),
     h('div', {
       className: 'sr-only',
       id: 'routeAnnouncer',
@@ -345,19 +349,19 @@ function DashboardShell({ desktop = null, onAddWorkspace = null } = {}) {
               type: 'button',
               'aria-haspopup': 'dialog',
               'aria-expanded': paletteOpen ? 'true' : 'false',
-              title: 'Open quick navigation',
+              title: t('Open quick navigation'),
               onClick: openPalette
             },
               h(Icon, { name: 'search' }),
-              h('span', { className: 'command-trigger-label' }, 'Quick navigation'),
+              h('span', { className: 'command-trigger-label' }, t('Quick navigation')),
               h('kbd', null, shortcut)
             ),
             h('a', {
               className: `status-pill ${connection.tone} connection-status-link`,
               id: 'connectionStatus',
               href: '#settings/connection',
-              'aria-label': `Open Connection settings; current status ${connection.label}`
-            }, connection.label),
+              'aria-label': t`Open Connection settings; current status ${connection.label}`
+            }, t(connection.label)),
             h('span', { className: 'section-action', id: 'lastUpdated' }, lastUpdated)
           )
         ),
@@ -386,7 +390,7 @@ function DesktopSidebar({ collapsed, extensionsEnabled, openAccordion, route, se
         h('div', { className: 'logo' },
           h('img', { src: '/public/assets/relai-logo.png', alt: 'Rel.AI logo', width: 193, height: 187 })
         ),
-        h('div', { className: 'brand-copy' }, h('strong', null, 'Rel.AI MCP'), h('span', null, 'project access'))
+        h('div', { className: 'brand-copy' }, h('strong', null, 'Rel.AI MCP'), h('span', null, t('project access')))
       ),
       h('button', {
         className: 'sidebar-toggle',
@@ -394,19 +398,19 @@ function DesktopSidebar({ collapsed, extensionsEnabled, openAccordion, route, se
         type: 'button',
         'aria-controls': 'desktopSidebar',
         'aria-expanded': collapsed ? 'false' : 'true',
-        'aria-label': collapsed ? 'Expand sidebar' : 'Collapse sidebar',
-        title: collapsed ? 'Expand sidebar' : 'Collapse sidebar',
+        'aria-label': collapsed ? t('Expand sidebar') : t('Collapse sidebar'),
+        title: collapsed ? t('Expand sidebar') : t('Collapse sidebar'),
         onClick: toggleSidebar
       }, h(Icon, { name: collapsed ? 'sidebarOpen' : 'sidebarClose' }))
     ),
     h('div', { className: 'sidebar-group' },
-      h('div', { className: 'sidebar-group-label' }, 'Work'),
-      h('nav', { className: 'nav', 'aria-label': 'Work navigation' },
+      h('div', { className: 'sidebar-group-label' }, t('Work')),
+      h('nav', { className: 'nav', 'aria-label': t('Work navigation') },
         WORK_NAV_ITEMS.map(item => h(NavLink, { key: item.id, item, active: route.owner === item.id }))
       )
     ),
     h('div', { className: 'sidebar-group secondary-nav' },
-      h('div', { className: 'sidebar-group-label' }, 'Application'),
+      h('div', { className: 'sidebar-group-label' }, t('Application')),
       extensionsEnabled ? h(NavLink, { item: EXTENSIONS_NAV_ITEM, active: route.owner === EXTENSIONS_NAV_ITEM.id }) : null,
       h(SidebarAccordion, {
         parent: APPLICATION_NAV_ITEMS[0],
@@ -425,7 +429,7 @@ function DesktopSidebar({ collapsed, extensionsEnabled, openAccordion, route, se
         setOpenAccordion
       })
     ),
-    h('div', { className: 'sidebar-note' }, surface === 'desktop' ? 'Desktop app · live status' : 'Live status from this computer.')
+    h('div', { className: 'sidebar-note' }, surface === 'desktop' ? t('Desktop app · live status') : t('Live status from this computer.'))
   );
 }
 
@@ -443,14 +447,14 @@ function SidebarAccordion({ parent, items, activeOwner, activePath, openAccordio
   },
     h('summary', {
       className: active ? 'active' : undefined,
-      'aria-label': parent.label,
-      title: parent.label
+      'aria-label': t(parent.label),
+      title: t(parent.label)
     },
       h(NavIcon, { item: parent }),
-      h('span', { className: 'nav-label' }, parent.label),
+      h('span', { className: 'nav-label' }, t(parent.label)),
       h(Icon, { className: 'sidebar-accordion-chevron', name: 'chevronRight' })
     ),
-    h('nav', { className: 'sidebar-subnav', 'aria-label': `${parent.label} navigation` },
+    h('nav', { className: 'sidebar-subnav', 'aria-label': t`${t(parent.label)} navigation` },
       items.map(item => h(NavLink, { key: item.id, item, active: item.path === activePath }))
     )
   );
@@ -468,7 +472,7 @@ function MobileNavigation({ extensionsEnabled, open, route, setOpen }) {
     return () => document.removeEventListener('pointerdown', onPointerDown);
   }, [open, setOpen]);
 
-  return h('nav', { className: 'mobile-nav', 'aria-label': 'Mobile navigation' },
+  return h('nav', { className: 'mobile-nav', 'aria-label': t('Mobile navigation') },
     MOBILE_PRIMARY_NAV_ITEMS.map(item => h(NavLink, {
       key: item.id,
       item,
@@ -487,9 +491,9 @@ function MobileNavigation({ extensionsEnabled, open, route, setOpen }) {
         event.currentTarget.querySelector(':scope > summary')?.focus();
       }
     },
-      h('summary', { className: moreActive ? 'active' : undefined, 'aria-label': 'More navigation', title: 'More' },
+      h('summary', { className: moreActive ? 'active' : undefined, 'aria-label': t('More navigation'), title: t('More') },
         h(Icon, { className: 'nav-icon', name: 'more' }),
-        h('span', { className: 'nav-label' }, 'More')
+        h('span', { className: 'nav-label' }, t('More'))
       ),
       h('div', { className: 'mobile-nav-more-menu' },
         moreItems.map(item => h(NavLink, {
@@ -507,12 +511,12 @@ function NavLink({ item, active, onClick }) {
   return h('a', {
     href: item.href,
     'data-nav-id': item.id,
-    'aria-label': item.label,
+    'aria-label': t(item.label),
     'aria-current': active ? 'page' : undefined,
-    title: item.label,
+    title: t(item.label),
     className: active ? 'active' : undefined,
     onClick
-  }, h(NavIcon, { item }), h('span', { className: 'nav-label' }, item.label));
+  }, h(NavIcon, { item }), h('span', { className: 'nav-label' }, t(item.label)));
 }
 
 function NavIcon({ item }) {
@@ -543,9 +547,9 @@ function WindowTitlebar({ desktop, title }) {
   }, [desktop]);
 
   const maximized = state.maximized === true;
-  const maximizeLabel = maximized ? 'Restore window' : 'Maximize window';
+  const maximizeLabel = maximized ? t('Restore window') : t('Maximize window');
   const controlsHidden = state.customTitleBar !== true || state.controls !== 'custom';
-  return h('header', { className: 'window-titlebar', id: 'windowTitlebar', 'aria-label': 'Application title bar' },
+  return h('header', { className: 'window-titlebar', id: 'windowTitlebar', 'aria-label': t('Application title bar') },
     h('div', { className: 'window-titlebar-identity', 'aria-hidden': 'true' },
       h('img', { src: '/public/assets/relai-logo.png', alt: '', 'aria-hidden': 'true', width: 193, height: 187 }),
       h('strong', null, 'Rel.AI MCP'),
@@ -556,12 +560,12 @@ function WindowTitlebar({ desktop, title }) {
       className: 'window-titlebar-controls',
       id: 'windowTitlebarControls',
       role: 'group',
-      'aria-label': 'Window controls',
+      'aria-label': t('Window controls'),
       hidden: controlsHidden
     },
       h(WindowButton, {
         id: 'windowMinimizeBtn',
-        label: 'Minimize window',
+        label: t('Minimize window'),
         onClick: () => runWindowAction(desktop?.minimizeWindow, setState),
         icon: 'minimize'
       }),
@@ -574,7 +578,7 @@ function WindowTitlebar({ desktop, title }) {
       }),
       h(WindowButton, {
         id: 'windowCloseBtn',
-        label: 'Close window',
+        label: t('Close window'),
         className: 'window-titlebar-close',
         onClick: () => runWindowAction(desktop?.closeWindow, setState),
         icon: 'close'
@@ -622,6 +626,7 @@ function runWindowAction(action, setState) {
 }
 
 const RouteOutlet = memo(function RouteOutlet({ route, routeState }) {
+  useUiLanguage();
   if (routeState) {
     return h('div', { id: 'routeRoot', className: 'route-root' }, h(DashboardState, routeState));
   }
@@ -632,8 +637,8 @@ const RouteOutlet = memo(function RouteOutlet({ route, routeState }) {
         key: route.section,
         fallback: h(DashboardState, {
           kind: 'loading',
-          title: `Loading ${route.title}…`,
-          description: 'Preparing this page.'
+          title: t`Loading ${route.title}…`,
+          description: t('Preparing this page.')
         })
       }, Component ? h(Component) : null)
     )
@@ -658,10 +663,10 @@ class RouteErrorBoundary extends React.Component {
     if (!this.state.error) return this.props.children;
     return h(DashboardState, {
       kind: 'error',
-      title: 'This page could not load.',
-      description: this.state.error instanceof Error ? this.state.error.message : String(this.state.error || 'The page could not be loaded.'),
-      primaryLabel: 'Retry page',
-      primaryBusyLabel: 'Reloading page…',
+      title: t('This page could not load.'),
+      description: this.state.error instanceof Error ? this.state.error.message : String(this.state.error || t('The page could not be loaded.')),
+      primaryLabel: t('Retry page'),
+      primaryBusyLabel: t('Reloading page…'),
       onPrimary: retryActiveRoute,
       diagnosticsHref: '#diagnostics'
     });
@@ -689,17 +694,17 @@ function DashboardState({ kind = 'loading', title, description, primaryLabel = '
     'aria-live': loading ? 'polite' : undefined,
     'aria-busy': loading ? 'true' : undefined
   }, h('div', { className: 'dashboard-state-card' },
-    loading ? h('div', { className: 'loading-mark', 'aria-hidden': 'true' }) : h(StatusPill, { label: 'Connection error', tone: 'bad' }),
-    h('h2', null, title),
-    h('p', null, description),
+    loading ? h('div', { className: 'loading-mark', 'aria-hidden': 'true' }) : h(StatusPill, { label: t('Connection error'), tone: 'bad' }),
+    h('h2', null, t(title)),
+    h('p', null, t(description)),
     loading ? h('div', { className: 'skeleton-grid', 'aria-hidden': 'true' },
       h('div', { className: 'skeleton-block' }),
       h('div', { className: 'skeleton-block' }),
       h('div', { className: 'skeleton-block' })
     ) : h('div', { className: 'dashboard-state-actions' },
-      onPrimary ? h('button', { className: 'primary', type: 'button', disabled: Boolean(busy), onClick: () => { void run('primary', onPrimary); } }, busy === 'primary' ? primaryBusyLabel : primaryLabel) : null,
-      onSecondary ? h('button', { className: 'secondary', type: 'button', disabled: Boolean(busy), onClick: () => { void run('secondary', onSecondary); } }, busy === 'secondary' ? secondaryBusyLabel : secondaryLabel) : null,
-      diagnosticsHref ? h('a', { className: 'buttonlike secondary', href: diagnosticsHref }, 'Open Troubleshooting') : null
+      onPrimary ? h('button', { className: 'primary', type: 'button', disabled: Boolean(busy), onClick: () => { void run('primary', onPrimary); } }, t(busy === 'primary' ? primaryBusyLabel : primaryLabel)) : null,
+      onSecondary ? h('button', { className: 'secondary', type: 'button', disabled: Boolean(busy), onClick: () => { void run('secondary', onSecondary); } }, t(busy === 'secondary' ? secondaryBusyLabel : secondaryLabel)) : null,
+      diagnosticsHref ? h('a', { className: 'buttonlike secondary', href: diagnosticsHref }, t('Open Troubleshooting')) : null
     )
   ));
 }
@@ -709,24 +714,24 @@ function StatusPill({ label, tone = '' }) {
 }
 
 function connectionPresentation(data = {}) {
-  if (data?.ok === false) return { label: 'Error', tone: 'bad' };
+  if (data?.ok === false) return { label: t('Error'), tone: 'bad' };
   const connection = connectionSummary(data?.connectionState);
   if (connection.tone !== 'ok') return { label: connection.label, tone: connection.tone };
   const task = classifyTaskActivity(data?.taskActivity);
-  if (task.category === 'attention') return { label: 'Action required', tone: 'bad' };
-  if (task.category === 'working') return { label: `${Math.max(1, task.taskCount)} running`, tone: 'working' };
-  if (task.category === 'waiting') return { label: `${Math.max(1, task.taskCount)} open`, tone: 'warn' };
+  if (task.category === 'attention') return { label: t('Action required'), tone: 'bad' };
+  if (task.category === 'working') return { label: t`${Math.max(1, task.taskCount)} running`, tone: 'working' };
+  if (task.category === 'waiting') return { label: t`${Math.max(1, task.taskCount)} open`, tone: 'warn' };
   const dashboardLayer = connectionLayerViews(data?.connectionState).find(layer => layer.key === 'dashboardUpdates');
   if (dashboardLayer) return { label: dashboardLayer.label, tone: dashboardLayer.tone };
-  return { label: 'Available', tone: 'ok', callCount: task.activeCalls };
+  return { label: t('Available'), tone: 'ok', callCount: task.activeCalls };
 }
 
 function lastUpdatedText(lastEventAt, now) {
   if (!lastEventAt) return '';
   const seconds = Math.max(0, Math.floor((now - lastEventAt) / 1000));
-  if (seconds < 5) return 'Updated just now';
-  if (seconds < 60) return `Updated ${seconds}s ago`;
-  return `Updated ${Math.floor(seconds / 60)}m ago`;
+  if (seconds < 5) return t('Updated just now');
+  if (seconds < 60) return t`Updated ${seconds}s ago`;
+  return t`Updated ${Math.floor(seconds / 60)}m ago`;
 }
 
 function RecoveryNotice({ recovery }) {
@@ -750,22 +755,22 @@ function RecoveryNotice({ recovery }) {
     role: restored ? 'status' : 'alert',
     'aria-live': 'polite'
   },
-    h('strong', null, recovery.title),
-    h('div', null, recovery.description),
+    h('strong', null, t(recovery.title)),
+    h('div', null, t(recovery.description)),
     restored ? null : h('div', { className: 'dashboard-state-actions' },
       recovery.onPrimary ? h('button', {
         className: 'primary',
         type: 'button',
         disabled: Boolean(busy),
         onClick: () => { void run('primary', recovery.onPrimary); }
-      }, busy === 'primary' ? recovery.primaryBusyLabel : recovery.primaryLabel) : null,
+      }, t(busy === 'primary' ? recovery.primaryBusyLabel : recovery.primaryLabel)) : null,
       recovery.onSecondary ? h('button', {
         className: 'secondary',
         type: 'button',
         disabled: Boolean(busy),
         onClick: () => { void run('secondary', recovery.onSecondary); }
-      }, busy === 'secondary' ? recovery.secondaryBusyLabel : recovery.secondaryLabel) : null,
-      h('a', { className: 'buttonlike secondary', href: recovery.diagnosticsHref }, 'Open Troubleshooting')
+      }, t(busy === 'secondary' ? recovery.secondaryBusyLabel : recovery.secondaryLabel)) : null,
+      h('a', { className: 'buttonlike secondary', href: recovery.diagnosticsHref }, t('Open Troubleshooting'))
     )
   );
 }
@@ -774,7 +779,8 @@ function CommandPalette({ data, extensionsEnabled, onAddWorkspace, onClose, open
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef(null);
-  const commands = useMemo(() => buildCommands(data, extensionsEnabled, onAddWorkspace, onClose), [data?.config?.workspaces, extensionsEnabled, onAddWorkspace, onClose]);
+  const language = useUiLanguage();
+  const commands = useMemo(() => buildCommands(data, extensionsEnabled, onAddWorkspace, onClose), [data?.config?.workspaces, extensionsEnabled, onAddWorkspace, onClose, language]);
   const visible = useMemo(() => {
     const normalized = normalizeSearch(query);
     return commands.filter(command => !normalized || command.searchText.includes(normalized)).slice(0, 14);
@@ -818,19 +824,19 @@ function CommandPalette({ data, extensionsEnabled, onAddWorkspace, onClose, open
           }
         }, h('div', { className: 'modal-panel modal-wide command-panel' },
           h('header', { className: 'modal-head' },
-            h(Dialog.Title, { asChild: true }, h('h2', { className: 'modal-title' }, 'Quick navigation'))
+            h(Dialog.Title, { asChild: true }, h('h2', { className: 'modal-title' }, t('Quick navigation')))
           ),
           h('div', { className: 'modal-body' },
             h('div', { className: 'command-palette' },
               h('label', { className: 'command-search-wrap' },
-                h('span', { className: 'sr-only' }, 'Search pages, settings, actions, and projects'),
+                h('span', { className: 'sr-only' }, t('Search pages, settings, actions, and projects')),
                 h(Icon, { name: 'search' }),
                 h('input', {
                   className: 'command-search',
                   type: 'search',
                   role: 'combobox',
                   autoComplete: 'off',
-                  placeholder: 'Search pages, actions, or projects',
+                  placeholder: t('Search pages, actions, or projects'),
                   'aria-autocomplete': 'list',
                   'aria-expanded': visible.length ? 'true' : 'false',
                   'aria-controls': 'commandPaletteList',
@@ -854,8 +860,8 @@ function CommandPalette({ data, extensionsEnabled, onAddWorkspace, onClose, open
                 }),
                 h('kbd', null, 'Esc')
               ),
-              h(Dialog.Description, { asChild: true }, h('div', { className: 'command-help' }, h('span', { id: 'commandPaletteHelp' }, 'Use ↑ and ↓ to move, then press Enter.'))),
-              h('div', { className: 'command-list', id: 'commandPaletteList', role: 'listbox', 'aria-label': 'Quick navigation results' },
+              h(Dialog.Description, { asChild: true }, h('div', { className: 'command-help' }, h('span', { id: 'commandPaletteHelp' }, t('Use ↑ and ↓ to move, then press Enter.')))),
+              h('div', { className: 'command-list', id: 'commandPaletteList', role: 'listbox', 'aria-label': t('Quick navigation results') },
                 visible.length
                   ? visible.map((command, index) => h('div', {
                       className: `command-option${index === safeIndex ? ' active' : ''}`,
@@ -871,7 +877,7 @@ function CommandPalette({ data, extensionsEnabled, onAddWorkspace, onClose, open
                     h('span', { className: 'command-option-copy' }, h('strong', null, command.label), h('small', null, command.description)),
                     h('span', { className: 'command-group' }, command.group)
                   ))
-                  : h('div', { className: 'command-empty' }, 'No matching page, action, or project.')
+                  : h('div', { className: 'command-empty' }, t('No matching page, action, or project.'))
               )
             )
           )
@@ -884,18 +890,18 @@ function CommandPalette({ data, extensionsEnabled, onAddWorkspace, onClose, open
 function buildCommands(data, extensionsEnabled, onAddWorkspace, closePalette) {
   const commands = navigationCommands({ includeExtensions: extensionsEnabled }).map(item => ({
     id: item.path.replaceAll('/', '-'),
-    label: item.group === 'Settings' ? `Settings · ${item.label}` : item.label,
-    description: item.description,
-    group: item.group,
+    label: item.group === 'Settings' ? t`Settings · ${t(item.label)}` : t(item.label),
+    description: t(item.description),
+    group: t(item.group),
     href: item.href,
     run: () => { closePalette(); location.hash = item.href; }
   }));
   if (typeof onAddWorkspace === 'function') {
     commands.push({
       id: 'add-workspace',
-      label: 'Add project',
-      description: 'Choose another project folder for ChatGPT.',
-      group: 'Action',
+      label: t('Add project'),
+      description: t('Choose another project folder for ChatGPT.'),
+      group: t('Action'),
       run: async () => { closePalette(); await onAddWorkspace(); }
     });
   }
@@ -906,9 +912,9 @@ function buildCommands(data, extensionsEnabled, onAddWorkspace, closePalette) {
     const href = `#${normalizeRouteKey(`workspaces?${params.toString()}`)}`;
     commands.push({
       id: `workspace-${alias}`,
-      label: `Project · ${alias}`,
-      description: workspace.path || 'Open project status and actions.',
-      group: 'Project',
+      label: t`Project · ${alias}`,
+      description: workspace.path || t('Open project status and actions.'),
+      group: t('Project'),
       href,
       run: () => { closePalette(); location.hash = href; }
     });
@@ -924,6 +930,7 @@ function normalizeSearch(value) {
 }
 
 const OverlayHost = memo(function OverlayHost({ drawer, modal }) {
+  useUiLanguage();
   return h(React.Fragment, null,
     modal ? h(ModalPortal, { descriptor: modal }) : null,
     drawer ? h(DrawerPortal, { descriptor: drawer }) : null
@@ -931,6 +938,7 @@ const OverlayHost = memo(function OverlayHost({ drawer, modal }) {
 });
 
 const ModalPortal = memo(function ModalPortal({ descriptor }) {
+  useUiLanguage();
   const descriptorRef = useRef(descriptor);
   descriptorRef.current = descriptor;
   return h(Dialog.Root, {
@@ -962,11 +970,11 @@ const ModalPortal = memo(function ModalPortal({ descriptor }) {
         }
       }, h('div', { className: `modal-panel modal-${descriptor.size}` },
         h('header', { className: 'modal-head', inert: descriptor.confirmation ? true : undefined },
-          h(Dialog.Title, { asChild: true }, h('h2', { className: 'modal-title' }, descriptor.title)),
+          h(Dialog.Title, { asChild: true }, h('h2', { className: 'modal-title' }, t(descriptor.title))),
           descriptor.showClose ? h('button', {
             type: 'button',
             className: 'modal-close',
-            'aria-label': descriptor.title ? `Close ${descriptor.title}` : 'Close dialog',
+            'aria-label': descriptor.title ? t`Close ${descriptor.title}` : t('Close dialog'),
             onClick: () => { void descriptor.onDismiss?.(); }
           }, h(CloseIcon)) : null
         ),
@@ -981,8 +989,8 @@ function OverlayContent({ content }) {
   if (content?.kind !== 'confirm-dialog') return content;
   return h('div', { className: 'confirm-dialog' },
     h('div', { className: 'confirm-dialog-copy' },
-      h('strong', null, content.message),
-      content.detail ? h('span', null, content.detail) : null
+      h('strong', null, t(content.message)),
+      content.detail ? h('span', null, t(content.detail)) : null
     ),
     h('div', { className: 'modal-actions' },
       h('button', {
@@ -990,13 +998,13 @@ function OverlayContent({ content }) {
         className: 'secondary',
         autoFocus: content.danger,
         onClick: content.onCancel
-      }, content.cancelLabel),
+      }, t(content.cancelLabel)),
       h('button', {
         type: 'button',
         className: content.danger ? 'danger' : 'primary',
         autoFocus: !content.danger,
         onClick: content.onConfirm
-      }, content.confirmLabel)
+      }, t(content.confirmLabel))
     )
   );
 }
@@ -1015,12 +1023,12 @@ function ModalConfirmation({ confirmation }) {
       }
     }, h('section', { className: 'modal-inline-confirm-card' },
       h(AlertDialog.Title, { asChild: true },
-        h('h3', { className: 'modal-inline-confirm-title' }, confirmation.title)
+        h('h3', { className: 'modal-inline-confirm-title' }, t(confirmation.title))
       ),
       h(AlertDialog.Description, { asChild: true },
         h('div', { className: 'confirm-dialog-copy' },
-          h('strong', null, confirmation.message),
-          confirmation.detail ? h('span', null, confirmation.detail) : null
+          h('strong', null, t(confirmation.message)),
+          confirmation.detail ? h('span', null, t(confirmation.detail)) : null
         )
       ),
       h('div', { className: 'modal-actions' },
@@ -1029,7 +1037,7 @@ function ModalConfirmation({ confirmation }) {
             type: 'button',
             className: 'secondary',
             ref: confirmation.danger ? focusRef : undefined
-          }, confirmation.cancelLabel)
+          }, t(confirmation.cancelLabel))
         ),
         h(AlertDialog.Action, { asChild: true },
           h('button', {
@@ -1037,7 +1045,7 @@ function ModalConfirmation({ confirmation }) {
             className: confirmation.danger ? 'danger' : 'primary',
             onClick: confirmation.onConfirm,
             ref: confirmation.danger ? undefined : focusRef
-          }, confirmation.confirmLabel)
+          }, t(confirmation.confirmLabel))
         )
       )
     ))
@@ -1045,6 +1053,7 @@ function ModalConfirmation({ confirmation }) {
 }
 
 const DrawerPortal = memo(function DrawerPortal({ descriptor }) {
+  useUiLanguage();
   return h(Dialog.Root, {
     open: true,
     onOpenChange: next => { if (!next) descriptor.onDismiss?.(); }
@@ -1063,13 +1072,13 @@ const DrawerPortal = memo(function DrawerPortal({ descriptor }) {
         }
       }, h('div', { className: ['drawer-panel', descriptor.panelClass].filter(Boolean).join(' ') },
         h('div', { className: 'drawer-head' },
-          h(Dialog.Title, { asChild: true }, h('h2', { className: 'drawer-title' }, descriptor.title)),
+          h(Dialog.Title, { asChild: true }, h('h2', { className: 'drawer-title' }, t(descriptor.title))),
           h('button', {
             className: 'secondary compact-button',
             type: 'button',
-            'aria-label': descriptor.title ? `Close ${descriptor.title}` : 'Close dialog',
+            'aria-label': descriptor.title ? t`Close ${descriptor.title}` : t('Close dialog'),
             onClick: descriptor.onDismiss
-          }, 'Close')
+          }, t('Close'))
         ),
         h('div', { className: 'drawer-body' }, descriptor.content)
       )))
@@ -1082,6 +1091,7 @@ function CloseIcon() {
 }
 
 const ToastRegion = memo(function ToastRegion({ toasts }) {
+  useUiLanguage();
   if (!toasts.length) return null;
   return createPortal(h('div', { className: 'toast-region', 'data-react-toast-region': 'true' },
     toasts.map(toast => h(ToastItem, { key: toast.id, toast }))
@@ -1139,12 +1149,12 @@ function ToastItem({ toast }) {
       className: 'toast-copy',
       role: toast.role,
       'aria-atomic': 'true',
-      'aria-label': toast.ariaLabel
+      'aria-label': t`${t(({ info: 'Information', success: 'Success', warn: 'Warning', error: 'Error' })[toast.tone] || 'Information')}: ${toast.text}`
     }, toast.text),
     h('button', {
       type: 'button',
       className: 'toast-dismiss',
-      'aria-label': toast.dismissLabel,
+      'aria-label': ({ info: t('Dismiss information notification'), success: t('Dismiss success notification'), warn: t('Dismiss warning notification'), error: t('Dismiss error notification') })[toast.tone] || t(toast.dismissLabel),
       onClick: () => removeToastOverlay(toast.id)
     }, h(CloseIcon))
   );

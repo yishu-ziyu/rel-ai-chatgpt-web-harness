@@ -1,3 +1,6 @@
+import { initUiLanguage, localizeStaticMarkup, subscribeUiLanguage, t } from './i18n.js';
+
+initUiLanguage(new URLSearchParams(location.search).get('language') || 'system');
 let currentStatus = {};
 let previousAnnouncementKey = '';
 let actionError = '';
@@ -25,37 +28,37 @@ function requestWindowFit() {
 function connectionView(status) {
   if (status.serverRunning && status.tunnelStatus === 'running') {
     return {
-      key: 'ready', badge: 'Ready', eyebrow: 'Connection ready',
-      title: 'Secure MCP Tunnel is ready.',
-      description: 'Rel.AI is running and the tunnel is connected. Keep Rel.AI running while ChatGPT uses this computer.'
+      key: 'ready', badge: t('Ready'), eyebrow: t('Connection ready'),
+      title: t('Secure MCP Tunnel is ready.'),
+      description: t('Rel.AI is running and the tunnel is connected. Keep Rel.AI running while ChatGPT uses this computer.')
     };
   }
   if (status.serverRunning && ['starting', 'locally_ready', 'authenticating', 'connecting'].includes(status.tunnelStatus)) {
     const authenticating = status.tunnelStatus === 'authenticating';
     return {
-      key: 'connecting', badge: authenticating ? 'Authenticating' : 'Connecting', eyebrow: 'Secure MCP Tunnel',
-      title: authenticating ? 'Checking the Secure MCP Tunnel…' : 'Starting Secure MCP Tunnel…',
-      description: authenticating ? 'Rel.AI is checking the tunnel connection with OpenAI.' : 'Rel.AI is connecting this computer to OpenAI.'
+      key: 'connecting', badge: authenticating ? t('Authenticating') : t('Connecting'), eyebrow: t('Secure MCP Tunnel'),
+      title: authenticating ? t('Checking the Secure MCP Tunnel…') : t('Starting Secure MCP Tunnel…'),
+      description: authenticating ? t('Rel.AI is checking the tunnel connection with OpenAI.') : t('Rel.AI is connecting this computer to OpenAI.')
     };
   }
   if (status.serverRunning && status.tunnelStatus === 'degraded') {
     return {
-      key: 'degraded', badge: 'Tunnel reconnecting', eyebrow: 'Secure MCP Tunnel interrupted',
-      title: 'The tunnel connection was interrupted.',
-      description: 'The local Rel.AI service is still running. Rel.AI is retrying the tunnel automatically.'
+      key: 'degraded', badge: t('Tunnel reconnecting'), eyebrow: t('Secure MCP Tunnel interrupted'),
+      title: t('The tunnel connection was interrupted.'),
+      description: t('The local Rel.AI service is still running. Rel.AI is retrying the tunnel automatically.')
     };
   }
   if (status.error || status.tunnelStatus === 'failed') {
     return {
-      key: 'failed', badge: 'Needs attention', eyebrow: 'Connection failed',
-      title: 'Rel.AI could not finish connecting.',
-      description: 'Restart the connection first. If the problem continues, restart Rel.AI or edit the connection settings.'
+      key: 'failed', badge: t('Needs attention'), eyebrow: t('Connection failed'),
+      title: t('Rel.AI could not finish connecting.'),
+      description: t('Restart the connection first. If the problem continues, restart Rel.AI or edit the connection settings.')
     };
   }
   return {
-    key: 'stopped', badge: 'Stopped', eyebrow: 'Rel.AI stopped',
-    title: 'Rel.AI is not running.',
-    description: 'Start Rel.AI to make your projects available to ChatGPT.'
+    key: 'stopped', badge: t('Stopped'), eyebrow: t('Rel.AI stopped'),
+    title: t('Rel.AI is not running.'),
+    description: t('Start Rel.AI to make your projects available to ChatGPT.')
   };
 }
 
@@ -94,19 +97,19 @@ function attentionHero(activity, taskCount, reason = '') {
     || activity.tasks?.[0]
     || null;
   const title = reason === 'waiting_for_approval'
-    ? 'Approval required.'
+    ? t('Approval required.')
     : reason === 'validation_failed'
-      ? 'Checks need attention.'
-      : 'The current task is blocked.';
+      ? t('Checks need attention.')
+      : t('The current task is blocked.');
   const description = reason === 'waiting_for_approval'
-    ? 'The task is paused until the required approval is handled in the AI host.'
+    ? t('The task is paused until the required approval is handled in the AI host.')
     : reason === 'validation_failed'
-      ? 'Review the failed checks, fix the issue, then validate again.'
-      : 'Resolve the blocker before the task can continue.';
+      ? t('Review the failed checks, fix the issue, then validate again.')
+      : t('Resolve the blocker before the task can continue.');
   return {
     key: 'attention',
-    badge: 'Action required',
-    eyebrow: 'Current task',
+    badge: t('Action required'),
+    eyebrow: t('Current task'),
     title: task?.title || title,
     description: task?.currentActivity || task?.errorSummary || description
   };
@@ -114,12 +117,12 @@ function attentionHero(activity, taskCount, reason = '') {
 
 function workingHero(activity, taskCount) {
   const title = taskCount > 1
-    ? `${activity.activeCalls || taskCount} Rel.AI actions are running.`
+    ? t`${activity.activeCalls || taskCount} Rel.AI actions are running.`
     : activity.operation || toolLabel(activity.tool);
   return {
     key: 'working',
-    badge: `${activity.activeCalls || taskCount} running`,
-    eyebrow: 'Current task',
+    badge: t`${activity.activeCalls || taskCount} running`,
+    eyebrow: t('Current task'),
     title,
     description: activityDescription(activity, false)
   };
@@ -128,9 +131,9 @@ function workingHero(activity, taskCount) {
 function waitingHero(activity, taskCount) {
   return {
     key: 'waiting',
-    badge: `${taskCount} waiting`,
-    eyebrow: 'Current task',
-    title: 'Rel.AI is waiting.',
+    badge: t`${taskCount} waiting`,
+    eyebrow: t('Current task'),
+    title: t('Rel.AI is waiting.'),
     description: activityDescription(activity, true)
   };
 }
@@ -140,34 +143,35 @@ function activityDescription(activity, waiting) {
   const taskCount = Number(activity.activeTaskCount || tasks.length || 1);
   const activeCalls = Number(activity.activeCalls || 0);
   const location = activityLocation(activity, tasks);
-  if (waiting) return 'ChatGPT may still be working or already finished. Rel.AI only knows when ChatGPT asks it to take an action.';
-  if (taskCount > 1) return `${activeCalls} ${pluralize(activeCalls, 'active action')} across ${location}. The computer stays awake while actions are running.`;
-  return `${activity.operation || toolLabel(activity.tool)} in ${location}. The computer stays awake until the action finishes.`;
+  if (waiting) return t('ChatGPT may still be working or already finished. Rel.AI only knows when ChatGPT asks it to take an action.');
+  if (taskCount > 1) return t`${activeCalls} ${pluralize(activeCalls, 'active action')} across ${location}. The computer stays awake while actions are running.`;
+  return t`${activity.operation || toolLabel(activity.tool)} in ${location}. The computer stays awake until the action finishes.`;
 }
 
 function activityLocation(activity, tasks) {
   const workspaces = [...new Set(tasks.map(task => task.workspace).filter(Boolean))];
   if (workspaces.length === 1) return workspaces[0];
-  if (workspaces.length > 1) return `${workspaces.length} projects`;
-  return activity.workspace || 'your projects';
+  if (workspaces.length > 1) return t`${workspaces.length} projects`;
+  return activity.workspace || t('your projects');
 }
 
 function pluralize(count, singular) {
-  return Number(count) === 1 ? singular : `${singular}s`;
+  return Number(count) === 1 ? t(singular) : t(`${singular}s`);
 }
 
 function toolLabel(tool) {
-  if (tool === 'relai_exec') return 'Running a project command';
-  if (tool === 'relai_validate') return 'Checking changes';
-  if (tool === 'relai_changes') return 'Reviewing or applying changes';
-  if (tool === 'relai_publish') return 'Publishing changes';
-  if (tool === 'relai_edit') return 'Applying changes';
-  return 'Looking through the project';
+  if (tool === 'relai_exec') return t('Running a project command');
+  if (tool === 'relai_validate') return t('Checking changes');
+  if (tool === 'relai_changes') return t('Reviewing or applying changes');
+  if (tool === 'relai_publish') return t('Publishing changes');
+  if (tool === 'relai_edit') return t('Applying changes');
+  return t('Looking through the project');
 }
 
 function updateUI(status) {
   currentStatus = { ...currentStatus, ...(status || {}) };
   currentStatus.taskActivity = { ...currentStatus.taskActivity, ...(status?.taskActivity || {}) };
+  if (status?.languagePreference) initUiLanguage(status.languagePreference);
   const view = heroView(currentStatus);
 
   const badge = document.getElementById('statusBadge');
@@ -208,12 +212,12 @@ function renderTaskMeta() {
   const taskCount = Math.max(1, Number(presentation.taskCount || 0));
   const activeCalls = Math.max(0, Number(presentation.activeCalls || 0));
   const calls = presentation.category === 'working'
-    ? `${activeCalls} ${pluralize(activeCalls, 'active action')}`
+    ? (activeCalls === 1 ? t`${activeCalls} active action` : t`${activeCalls} active actions`)
     : presentation.category === 'attention'
-      ? 'action required'
-      : 'no active action';
+      ? t('action required')
+      : t('no active action');
   const workspace = activityLocation(activity, tasks);
-  const taskLabel = `${taskCount} ${pluralize(taskCount, 'task')}`;
+  const taskLabel = taskCount === 1 ? t`${taskCount} task` : t`${taskCount} tasks`;
   element.innerHTML = `<span class="activity-pulse" aria-hidden="true"></span><strong>${escapeText(taskLabel)}</strong><span>${escapeText(workspace)}</span><span>${escapeText(calls)}</span><time id="taskElapsed"></time>`;
   renderTemporalText();
 }
@@ -228,8 +232,8 @@ function renderEndpoint(view) {
     endpoint.className = 'endpoint-box';
     copyButton.disabled = false;
   } else {
-    endpoint.textContent = 'Waiting for connection setup…';
-    if (view.key === 'stopped') endpoint.textContent = 'Set up the ChatGPT connection, then start Rel.AI.';
+    endpoint.textContent = t('Waiting for connection setup…');
+    if (view.key === 'stopped') endpoint.textContent = t('Set up the ChatGPT connection, then start Rel.AI.');
     endpoint.className = 'endpoint-box empty';
     copyButton.disabled = true;
   }
@@ -237,8 +241,8 @@ function renderEndpoint(view) {
 
 function renderConnectionHealth() {
   setHealthCard('localHealthCard', currentStatus.serverRunning ? 'ready' : 'offline');
-  document.getElementById('localHealthState').textContent = currentStatus.serverRunning ? 'Running' : 'Stopped';
-  document.getElementById('localService').textContent = currentStatus.localUrl || (currentStatus.serverRunning ? 'Running locally' : 'Not running');
+  document.getElementById('localHealthState').textContent = currentStatus.serverRunning ? t('Running') : t('Stopped');
+  document.getElementById('localService').textContent = currentStatus.localUrl || (currentStatus.serverRunning ? t('Running locally') : t('Not running'));
 
   const publicState = publicHealthState(currentStatus.tunnelStatus);
   setHealthCard('publicHealthCard', publicState);
@@ -256,9 +260,9 @@ function publicHealthState(tunnelStatus) {
 
 function tunnelDetail(publicState, tunnelId) {
   if (publicState === 'ready' && tunnelId) return tunnelId;
-  if (publicState === 'connecting') return 'Checking Secure MCP Tunnel';
-  if (publicState === 'degraded') return 'Retrying automatically';
-  return tunnelId || 'Not configured';
+  if (publicState === 'connecting') return t('Checking Secure MCP Tunnel');
+  if (publicState === 'degraded') return t('Retrying automatically');
+  return tunnelId || t('Not configured');
 }
 
 function setHealthCard(id, state) {
@@ -275,22 +279,22 @@ function renderLastTask() {
   const completed = task.status === 'completed' && task.completionKnown === true;
   card.className = `app-card last-task-card ${failed ? 'attention' : 'completed'}`;
   let icon = '•';
-  let title = 'Last task is inactive';
+  let title = t('Last task is inactive');
   if (failed) {
     icon = '!';
-    title = 'Last task had a failed action';
+    title = t('Last task had a failed action');
   } else if (completed) {
     icon = '✓';
-    title = 'Task completed';
+    title = t('Task completed');
   }
   document.getElementById('lastTaskIcon').textContent = icon;
   document.getElementById('lastTaskTitle').textContent = title;
-  const workspace = task.workspace || 'project';
-  const calls = `${task.calls} action${task.calls === 1 ? '' : 's'}`;
-  const failures = failed ? ` · ${task.failures} failed` : '';
+  const workspace = task.workspace || t('project');
+  const calls = task.calls === 1 ? t`${task.calls} action` : t`${task.calls} actions`;
+  const failures = failed ? t` · ${task.failures} failed` : '';
   const completion = completed
-    ? ` · ${task.summary || 'final checks passed'}`
-    : ' · ChatGPT did not report a final result';
+    ? t` · ${task.summary || t('final checks passed')}`
+    : t(' · ChatGPT did not report a final result');
   document.getElementById('lastTaskDetail').textContent = `${workspace} · ${calls}${failures}${completion} · ${formatDuration(task.durationMs)}`;
   renderTemporalText();
 }
@@ -299,9 +303,9 @@ function renderError(view) {
   const connectionFailed = view.key === 'failed';
   const failed = connectionFailed || Boolean(actionError);
   document.getElementById('errorPanel').hidden = !failed;
-  document.getElementById('errorTitle').textContent = connectionFailed ? 'Connection needs attention' : 'Action needs attention';
+  document.getElementById('errorTitle').textContent = connectionFailed ? t('Connection needs attention') : t('Action needs attention');
   document.getElementById('errorMessage').textContent = connectionFailed
-    ? currentStatus.error || 'The Secure MCP Tunnel did not become ready.'
+    ? currentStatus.error || t('The Secure MCP Tunnel did not become ready.')
     : actionError;
   for (const id of ['retryBtn', 'restartAppBtn', 'errorSettingsBtn']) {
     document.getElementById(id).hidden = !connectionFailed;
@@ -316,7 +320,7 @@ function setActionError(value) {
 
 function renderControls() {
   const toggle = document.getElementById('serverToggleBtn');
-  toggle.textContent = currentStatus.serverRunning ? 'Stop Rel.AI' : 'Start Rel.AI';
+  toggle.textContent = currentStatus.serverRunning ? t('Stop Rel.AI') : t('Start Rel.AI');
   toggle.className = currentStatus.serverRunning ? 'danger compact-control' : 'primary compact-control';
   document.getElementById('dashboardBtn').disabled = !currentStatus.serverRunning;
   document.getElementById('appVersion').textContent = currentStatus.version ? `v${currentStatus.version}` : '—';
@@ -359,20 +363,20 @@ function renderTemporalText() {
 
 function relativeTime(timestamp) {
   const seconds = Math.max(0, Math.floor((Date.now() - timestamp) / 1000));
-  if (seconds < 5) return 'Just now';
-  if (seconds < 60) return `${seconds}s ago`;
+  if (seconds < 5) return t('Just now');
+  if (seconds < 60) return t`${seconds}s ago`;
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 60) return t`${minutes}m ago`;
   const hours = Math.floor(minutes / 60);
-  return `${hours}h ago`;
+  return t`${hours}h ago`;
 }
 
 function formatDuration(milliseconds) {
   const totalSeconds = Math.max(0, Math.round(Number(milliseconds || 0) / 1000));
-  if (totalSeconds < 60) return `${totalSeconds}s`;
+  if (totalSeconds < 60) return t`${totalSeconds}s`;
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
-  return seconds ? `${minutes}m ${seconds}s` : `${minutes}m`;
+  return seconds ? t`${minutes}m ${seconds}s` : t`${minutes}m`;
 }
 
 function diagnosticSummary() {
@@ -435,7 +439,7 @@ function renderServiceLogs() {
   if (!visible.length) {
     const empty = document.createElement('div');
     empty.className = 'fallback-log-empty';
-    empty.textContent = serviceLogs.length ? 'Only debug logs are currently hidden.' : 'No app logs recorded yet.';
+    empty.textContent = serviceLogs.length ? t('Only debug logs are currently hidden.') : t('No app logs recorded yet.');
     element.appendChild(empty);
     requestWindowFit();
     return;
@@ -475,7 +479,7 @@ function serviceLogElement(entry) {
     const body = document.createElement('div');
     body.className = 'fallback-log-details';
     const label = document.createElement('strong');
-    label.textContent = 'Technical details';
+    label.textContent = t('Technical details');
     const pre = document.createElement('pre');
     pre.textContent = JSON.stringify(technical, null, 2);
     body.append(label, pre);
@@ -494,7 +498,7 @@ function formatServiceLog(entry) {
 
 function localLogTimestamp(value) {
   const timestamp = Date.parse(String(value || ''));
-  return Number.isFinite(timestamp) ? new Date(timestamp).toLocaleString(undefined, { hour12: false }) : 'Unknown time';
+  return Number.isFinite(timestamp) ? new Date(timestamp).toLocaleString(undefined, { hour12: false }) : t('Unknown time');
 }
 
 function safeLogDetails(value, depth = 0) {
@@ -524,7 +528,7 @@ function safeDiagnosticText(value) {
     .replace(/\b(token|secret|password|authorization|api[_-]?key|authtoken|client[_-]?secret)\s*[:=]\s*[^\s,;]+/gi, '$1=[redacted]');
 }
 
-async function copyWithFeedback(button, text, successText = 'Copied') {
+async function copyWithFeedback(button, text, successText = t('Copied')) {
   await window.electronAPI.copyUrl(text);
   const original = button.textContent;
   button.dataset.state = 'success';
@@ -548,12 +552,12 @@ function initDisclosures() {
 }
 
 function tunnelLabel(status) {
-  if (status === 'running') return 'Connected';
-  if (status === 'degraded') return 'Reconnecting';
-  if (status === 'authenticating') return 'Authenticating';
-  if (['starting', 'locally_ready', 'connecting'].includes(status)) return 'Connecting';
-  if (status === 'failed') return 'Failed';
-  return 'Offline';
+  if (status === 'running') return t('Connected');
+  if (status === 'degraded') return t('Reconnecting');
+  if (status === 'authenticating') return t('Authenticating');
+  if (['starting', 'locally_ready', 'connecting'].includes(status)) return t('Connecting');
+  if (status === 'failed') return t('Failed');
+  return t('Offline');
 }
 
 async function withBusy(button, label, action) {
@@ -566,7 +570,7 @@ async function withBusy(button, label, action) {
     setActionError('');
     if (result) updateUI(result);
   } catch (error) {
-    setActionError(error instanceof Error ? error.message : 'The action could not be completed.');
+    setActionError(error instanceof Error ? error.message : t('The action could not be completed.'));
   } finally {
     button.disabled = false;
     delete button.dataset.state;
@@ -576,27 +580,27 @@ async function withBusy(button, label, action) {
 
 function bindEvents() {
   document.getElementById('copyBtn').addEventListener('click', () => {
-    if (currentStatus.tunnelId) runAsync(copyWithFeedback(document.getElementById('copyBtn'), currentStatus.tunnelId, 'Tunnel ID copied'));
+    if (currentStatus.tunnelId) runAsync(copyWithFeedback(document.getElementById('copyBtn'), currentStatus.tunnelId, t('Tunnel ID copied')));
   });
   document.getElementById('serverToggleBtn').addEventListener('click', () => {
     const button = document.getElementById('serverToggleBtn');
     const stopping = currentStatus.serverRunning;
-    runAsync(withBusy(button, stopping ? 'Stopping…' : 'Starting…', () => stopping
+    runAsync(withBusy(button, stopping ? t('Stopping…') : t('Starting…'), () => stopping
       ? window.electronAPI.stopServer()
       : window.electronAPI.startServer()));
   });
   document.getElementById('retryBtn').addEventListener('click', () => {
-    runAsync(withBusy(document.getElementById('retryBtn'), 'Retrying connection…', () => window.electronAPI.restartConnection()));
+    runAsync(withBusy(document.getElementById('retryBtn'), t('Retrying connection…'), () => window.electronAPI.restartConnection()));
   });
   document.getElementById('restartAppBtn').addEventListener('click', () => {
-    runAsync(withBusy(document.getElementById('restartAppBtn'), 'Restarting Rel.AI…', () => window.electronAPI.relaunchApp()));
+    runAsync(withBusy(document.getElementById('restartAppBtn'), t('Restarting Rel.AI…'), () => window.electronAPI.relaunchApp()));
   });
   document.getElementById('debugLogsToggle')?.addEventListener('change', renderServiceLogs);
   document.getElementById('copyDiagnosticsBtn').addEventListener('click', () => {
-    runAsync(copyWithFeedback(document.getElementById('copyDiagnosticsBtn'), diagnosticSummary(), 'Details copied'));
+    runAsync(copyWithFeedback(document.getElementById('copyDiagnosticsBtn'), diagnosticSummary(), t('Details copied')));
   });
   document.getElementById('dashboardBtn').addEventListener('click', () => {
-    runAsync(withBusy(document.getElementById('dashboardBtn'), 'Opening…', async () => {
+    runAsync(withBusy(document.getElementById('dashboardBtn'), t('Opening…'), async () => {
       await window.electronAPI.openDashboard();
       return null;
     }));
@@ -621,9 +625,15 @@ function escapeText(value) {
     .replaceAll("'", '&#039;');
 }
 
+subscribeUiLanguage(() => {
+  localizeStaticMarkup();
+  updateUI({});
+  renderServiceLogs();
+});
 window.electronAPI.onServerStatus(updateUI);
 window.electronAPI.onServerLog(receiveServerLog);
 document.addEventListener('visibilitychange', ensureClock);
 initDisclosures();
 bindEvents();
+localizeStaticMarkup();
 updateUI(currentStatus);

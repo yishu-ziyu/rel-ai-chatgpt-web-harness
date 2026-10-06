@@ -12,6 +12,7 @@ const publicRoot = process.env.REL_AI_GENERATED_PUBLIC_ROOT
 try {
   verifyColorTokens();
   verifyUiContracts();
+  verifyGenerator('generate-localization.mjs', 'Generated localization is stale. Run npm run build:frontend.');
   if (!verifyDashboardGeneratedState(root, publicRoot)) throw staleDashboardError();
   console.log('Generated dashboard assets are current.');
 } catch (error) {

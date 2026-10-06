@@ -6,6 +6,8 @@ import * as fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import { importResourceModule } from './resource-path.js';
 
+const { normalizeLanguagePreference } = await importResourceModule('src/ui/i18n.js');
+
 const { readJsonFileAsync, writeJsonAtomicAsync } = await importResourceModule('src/durableState.ts');
 
 function createDesktopLifecycleManager(options = {}) {
@@ -71,6 +73,7 @@ function createDesktopLifecycleManager(options = {}) {
       keepRunningOnClose: previous.keepRunningOnClose !== false,
       pulseEnabled: previous.pulseEnabled !== false,
       themePreference: normalizeThemePreference(previous.themePreference),
+      languagePreference: normalizeLanguagePreference(previous.languagePreference),
       autoDownloadUpdates: previous.autoDownloadUpdates === true,
       reducedBackgroundWork: previous.reducedBackgroundWork === true,
       openedAtLogin: argv.includes('--background') || launchAtLogin.openedAtLogin === true
@@ -157,7 +160,8 @@ function createDesktopLifecycleManager(options = {}) {
     const fields = ['keepRunningOnClose', 'pulseEnabled', 'autoDownloadUpdates', 'reducedBackgroundWork'];
     const previous = {
       ...Object.fromEntries(fields.map(field => [field, status[field] === true])),
-      themePreference: normalizeThemePreference(status.themePreference)
+      themePreference: normalizeThemePreference(status.themePreference),
+      languagePreference: normalizeLanguagePreference(status.languagePreference)
     };
     const next = { ...previous };
     let changed = false;
@@ -175,6 +179,13 @@ function createDesktopLifecycleManager(options = {}) {
       }
       next.themePreference = patch.themePreference;
       if (next.themePreference !== previous.themePreference) changed = true;
+    }
+    if (Object.hasOwn(patch, 'languagePreference')) {
+      if (!['system', 'en', 'zh-CN'].includes(patch.languagePreference)) {
+        return { ok: false, errorCode: codes.state, error: 'Language preference is invalid.', status: snapshot() };
+      }
+      next.languagePreference = patch.languagePreference;
+      if (next.languagePreference !== previous.languagePreference) changed = true;
     }
     if (!changed) return { ok: true, status: snapshot() };
     status = { ...status, ...next };
@@ -240,6 +251,7 @@ function createDesktopLifecycleManager(options = {}) {
       keepRunningOnClose: status.keepRunningOnClose !== false,
       pulseEnabled: status.pulseEnabled !== false,
       themePreference: normalizeThemePreference(status.themePreference),
+      languagePreference: normalizeLanguagePreference(status.languagePreference),
       autoDownloadUpdates: status.autoDownloadUpdates === true,
       reducedBackgroundWork: status.reducedBackgroundWork === true
     };
@@ -285,6 +297,7 @@ function baseStatus(app, support, connectorRevision = '') {
     keepRunningOnClose: true,
     pulseEnabled: true,
     themePreference: 'system',
+    languagePreference: 'system',
     autoDownloadUpdates: false,
     reducedBackgroundWork: false,
     openedAtLogin: false

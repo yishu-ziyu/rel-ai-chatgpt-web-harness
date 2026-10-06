@@ -1,5 +1,7 @@
 import { importResourceModule } from './resource-path.js';
 
+const { t } = await importResourceModule('src/ui/i18n.js');
+
 const { classifyTaskActivity } = await importResourceModule('src/taskActivityPresentation.js');
 
 function projectPulseStatus(status = {}) {
@@ -19,9 +21,9 @@ function projectPulseStatus(status = {}) {
     return {
       visible: true,
       tone: 'working',
-      badge: activeCalls === 1 ? '1 running' : `${Math.max(1, activeCalls)} running`,
+      badge: activeCalls === 1 ? t('1 running') : t`${Math.max(1, activeCalls)} running`,
       title: cleanText(primary?.currentStage || primary?.currentActivity || activity.operation || operationLabel(activity.tool || primary?.lastTool), 96),
-      detail: taskDetail(primary, taskCount, 'Rel.AI is using this computer now.'),
+      detail: taskDetail(primary, taskCount, t('Rel.AI is using this computer now.')),
       activityLine: cleanText(activityLineFor(primary, activity), 140),
       startedAt: startedAtFor(primary, activity),
       workspacesLabel: workspacesLabel(tasks),
@@ -35,9 +37,9 @@ function projectPulseStatus(status = {}) {
     return {
       visible: true,
       tone: 'waiting',
-      badge: taskCount === 1 ? '1 open' : `${Math.max(1, taskCount)} open`,
-      title: taskCount > 1 ? `${taskCount} tasks are open` : cleanText(primary?.title || 'Waiting for the next local action', 96),
-      detail: taskDetail(primary, taskCount, 'ChatGPT may still be working. Rel.AI is ready for the next local action.'),
+      badge: taskCount === 1 ? t('1 open') : t`${Math.max(1, taskCount)} open`,
+      title: taskCount > 1 ? t`${taskCount} tasks are open` : cleanText(primary?.title || t('Waiting for the next local action'), 96),
+      detail: taskDetail(primary, taskCount, t('ChatGPT may still be working. Rel.AI is ready for the next local action.')),
       activityLine: cleanText(activityLineFor(primary, activity), 140),
       startedAt: startedAtFor(primary, activity),
       workspacesLabel: workspacesLabel(tasks),
@@ -52,9 +54,9 @@ function projectPulseStatus(status = {}) {
     return {
       visible: true,
       tone: 'attention',
-      badge: 'Needs attention',
-      title: 'Rel.AI needs attention',
-      detail: 'Open Rel.AI for connection details and recovery options.',
+      badge: t('Needs attention'),
+      title: t('Rel.AI needs attention'),
+      detail: t('Open Rel.AI for connection details and recovery options.'),
       route: '#diagnostics',
       taskCount: 0,
       actionRequired: false
@@ -63,9 +65,9 @@ function projectPulseStatus(status = {}) {
   return {
     visible: true,
     tone: 'idle',
-    badge: 'Idle',
-    title: 'Rel.AI is idle',
-    detail: 'No local task is active.',
+    badge: t('Idle'),
+    title: t('Rel.AI is idle'),
+    detail: t('No local task is active.'),
     route: '#home',
     taskCount: 0,
     actionRequired: false
@@ -75,19 +77,19 @@ function projectPulseStatus(status = {}) {
 function attentionModel(task, taskCount, route, tasks) {
   const status = normalizeStatus(task.status);
   const title = status === 'waiting_for_approval'
-    ? 'Approval required'
+    ? t('Approval required')
     : status === 'validation_failed'
-      ? 'Checks need attention'
-      : 'Resolve the blocker to continue';
+      ? t('Checks need attention')
+      : t('Resolve the blocker to continue');
   const fallback = status === 'waiting_for_approval'
-    ? 'The task is paused until the required approval is handled in the AI host.'
+    ? t('The task is paused until the required approval is handled in the AI host.')
     : status === 'validation_failed'
-      ? 'Review the failed checks, fix the issue, then validate again.'
-      : 'Open the task to see what is blocking progress.';
+      ? t('Review the failed checks, fix the issue, then validate again.')
+      : t('Open the task to see what is blocking progress.');
   return {
     visible: true,
     tone: 'attention',
-    badge: 'Action required',
+    badge: t('Action required'),
     title,
     detail: taskDetail(task, taskCount, cleanText(task.currentActivity || task.errorSummary || fallback, 140)),
     activityLine: cleanText(activityLineFor(task, {}), 140),
@@ -137,11 +139,11 @@ function taskDetail(task, taskCount, fallback) {
   const workspace = cleanText(task?.workspace, 60);
   const title = cleanText(task?.title || task?.objective, 80);
   if (taskCount > 1) {
-    const scope = workspace ? ` across ${taskCount} tasks · ${workspace}` : ` across ${taskCount} tasks`;
+    const scope = workspace ? t` across ${taskCount} tasks · ${workspace}` : t` across ${taskCount} tasks`;
     return cleanText(`${fallback}${scope}`, 180);
   }
   const context = [title, workspace].filter(Boolean).join(' · ');
-  return cleanText(context ? `${fallback} ${context}` : fallback, 180);
+  return cleanText(context ? t`${fallback} ${context}` : fallback, 180);
 }
 
 function taskRoute(task) {
@@ -156,14 +158,14 @@ function taskRoute(task) {
 
 function operationLabel(tool) {
   const value = String(tool || '').toLowerCase();
-  if (/validate|check/.test(value)) return 'Checking changes';
-  if (/edit|write|replace/.test(value)) return 'Applying changes';
-  if (/publish|commit|push/.test(value)) return 'Publishing changes';
-  if (/browser/.test(value)) return 'Using the local browser';
-  if (/computer|desktop/.test(value)) return 'Using this computer';
-  if (/exec|process|command|terminal/.test(value)) return 'Running a local command';
-  if (/relai_changes/.test(value)) return 'Reviewing changes';
-  return 'Working locally';
+  if (/validate|check/.test(value)) return t('Checking changes');
+  if (/edit|write|replace/.test(value)) return t('Applying changes');
+  if (/publish|commit|push/.test(value)) return t('Publishing changes');
+  if (/browser/.test(value)) return t('Using the local browser');
+  if (/computer|desktop/.test(value)) return t('Using this computer');
+  if (/exec|process|command|terminal/.test(value)) return t('Running a local command');
+  if (/relai_changes/.test(value)) return t('Reviewing changes');
+  return t('Working locally');
 }
 
 function activityLineFor(task, activity = {}) {
@@ -197,15 +199,15 @@ function workspacesLabel(tasks = []) {
 
 function taskStatusLabel(task = {}) {
   const status = normalizeStatus(task?.status);
-  if (Math.max(0, Number(task?.activeCalls || 0)) > 0) return 'Running';
-  if (status === 'waiting_for_approval') return 'Approval';
-  if (status === 'blocked') return 'Blocked';
-  if (status === 'validation_failed') return 'Checks';
-  if (status === 'running') return 'Running';
-  if (status === 'planning') return 'Planning';
-  if (status === 'settling' || status === 'waiting') return 'Waiting';
+  if (Math.max(0, Number(task?.activeCalls || 0)) > 0) return t('Running');
+  if (status === 'waiting_for_approval') return t('Approval');
+  if (status === 'blocked') return t('Blocked');
+  if (status === 'validation_failed') return t('Checks');
+  if (status === 'running') return t('Running');
+  if (status === 'planning') return t('Planning');
+  if (status === 'settling' || status === 'waiting') return t('Waiting');
   if (status) return status.replaceAll('_', ' ').replace(/\b\w/g, letter => letter.toUpperCase()).slice(0, 18);
-  return 'Queued';
+  return t('Queued');
 }
 
 function normalizeStatus(value) {

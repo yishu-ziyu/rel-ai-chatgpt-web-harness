@@ -1,3 +1,4 @@
+import { subscribeUiLanguage } from './i18n.js';
 import { formatDuration, timeAgo } from './utils.js';
 
 const CLOCK_SELECTOR = '[data-clock-elapsed-start], [data-clock-relative]';
@@ -32,6 +33,7 @@ export function createDashboardClock(options = {}) {
   let observer = null;
   let timer = null;
   let stopped = true;
+  let unsubscribeLanguage = null;
   let nextRelativeRefreshAt = 0;
 
   function updateElapsedNode(node, currentTime) {
@@ -134,6 +136,7 @@ export function createDashboardClock(options = {}) {
   function start() {
     if (!stopped) return api;
     stopped = false;
+    unsubscribeLanguage = subscribeUiLanguage(() => tick(true));
     documentRef.addEventListener?.('visibilitychange', handleVisibility);
     observe(documentRef);
     nextRelativeRefreshAt = now() + RELATIVE_REFRESH_MS;
@@ -146,6 +149,8 @@ export function createDashboardClock(options = {}) {
   function stop() {
     if (stopped) return;
     stopped = true;
+    unsubscribeLanguage?.();
+    unsubscribeLanguage = null;
     stopTimer();
     stopObserver();
     liveElapsedNodes.clear();

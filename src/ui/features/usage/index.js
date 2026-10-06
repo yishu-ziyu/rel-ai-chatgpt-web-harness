@@ -1,3 +1,4 @@
+import { t } from '../../i18n.js';
 import { normalizeUsageSnapshot } from './range-model.js';
 
 export function buildUsageModel(snapshot, requestedMonth = '') {
@@ -25,15 +26,15 @@ export function analyticsPrivacyCopy(privacy = {}) {
   const retentionDays = Math.max(0, Number(privacy?.retentionDays || 0));
   const telemetry = privacy?.externalTelemetry || {};
   const retention = retentionDays
-    ? `Aggregate local analytics are retained for about ${Math.floor(retentionDays)} days.`
-    : 'Aggregate local analytics are retained locally.';
+    ? t`Aggregate local analytics are retained for about ${Math.floor(retentionDays)} days.`
+    : t('Aggregate local analytics are retained locally.');
   const telemetryCopy = telemetry.enabled === true
-    ? `External developer telemetry is on at a ${Math.round(Number(telemetry.sampleRatio || 0) * 100)}% sample rate. Operational traces can include tool names, project aliases, task IDs, client/runtime information, timings, and summarized commands. Prompts, file contents, command output, and raw exception messages are not exported.`
+    ? t`External developer telemetry is on at a ${Math.round(Number(telemetry.sampleRatio || 0) * 100)}% sample rate. Operational traces can include tool names, project aliases, task IDs, client/runtime information, timings, and summarized commands. Prompts, file contents, command output, and raw exception messages are not exported.`
     : telemetry.endpointConfigured === true
-      ? 'External developer telemetry is off. An OTLP endpoint is configured, but the telemetry switch is disabled, so Rel.AI does not export traces.'
-      : 'External developer telemetry is off. No OTLP trace endpoint is active.';
+      ? t('External developer telemetry is off. An OTLP endpoint is configured, but the telemetry switch is disabled, so Rel.AI does not export traces.')
+      : t('External developer telemetry is off. No OTLP trace endpoint is active.');
   return {
-    retention: `${retention} Aggregate action categories and work-type labels are stored locally. Prompts, task objectives, file paths, command output, action results, and raw errors are not stored in local analytics.`,
+    retention: t`${retention} Aggregate action categories and work-type labels are stored locally. Prompts, task objectives, file paths, command output, action results, and raw errors are not stored in local analytics.`,
     telemetry: telemetryCopy
   };
 }

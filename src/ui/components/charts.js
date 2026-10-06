@@ -11,6 +11,8 @@ import {
 import { color as chartColor } from 'chart.js/helpers';
 import { Line } from 'react-chartjs-2';
 import { COLOR_THEMES } from '../colorTokens.mjs';
+import { t } from '../i18n.js';
+import { useUiLanguage } from '../i18n-react.js';
 
 ChartJS.register(CategoryScale, LinearScale, LineElement, PointElement, Filler, Tooltip);
 
@@ -58,10 +60,11 @@ function initialChartTheme() {
 const DEFAULT_THEME = initialChartTheme();
 
 export function SparkChart({ values = [], className = '', tone = '', ariaLabel = '', decorative = true }) {
+  useUiLanguage();
   const data = safeValues(values);
   const theme = useChartTheme();
   const accent = toneColor(theme, tone);
-  const toneLabel = tone === 'good' ? 'positive trend' : tone === 'bad' ? 'negative trend' : 'trend';
+  const toneLabel = tone === 'good' ? t('positive trend') : tone === 'bad' ? t('negative trend') : t('trend');
   const chartData = useMemo(() => ({
     labels: data.map((_, index) => String(index + 1)),
     datasets: [{
@@ -100,7 +103,7 @@ export function SparkChart({ values = [], className = '', tone = '', ariaLabel =
     data: chartData,
     options,
     role: 'img',
-    'aria-label': ariaLabel || `Sparkline showing ${toneLabel}`
+    'aria-label': ariaLabel || t`Sparkline showing ${toneLabel}`
   }));
 }
 
@@ -111,13 +114,14 @@ export function AnalyticsTimelineChart({
   className = '',
   ariaLabel = '',
   ariaDescribedBy = '',
-  valueLabel = 'Value',
+  valueLabel = t('Value'),
   formatValue = value => String(value),
   missingValueLabel = '',
   peakIndex = -1,
   activeIndex = 0,
   onActiveIndexChange = () => {}
 }) {
+  useUiLanguage();
   const data = safeValues(values);
   const theme = useChartTheme();
   const chartRef = useRef(null);
@@ -245,8 +249,8 @@ export function AnalyticsTimelineChart({
     role: 'group',
     tabIndex: 0,
     'aria-label': ariaLabel
-      ? `${ariaLabel} Use Left and Right Arrow keys to inspect periods. Home selects the first period and End selects the latest.`
-      : 'Analytics chart. Use Left and Right Arrow keys to inspect periods. Home selects the first period and End selects the latest.',
+      ? t`${ariaLabel} Use Left and Right Arrow keys to inspect periods. Home selects the first period and End selects the latest.`
+      : t('Analytics chart. Use Left and Right Arrow keys to inspect periods. Home selects the first period and End selects the latest.'),
     'aria-describedby': ariaDescribedBy || undefined,
     onFocus: () => selectIndex(Number.isInteger(activeIndex) ? activeIndex : latestIndex),
     onKeyDown
@@ -261,7 +265,8 @@ export function AnalyticsTimelineChart({
   }));
 }
 
-export function AnalyticsBubbleMatrixChart({ cells = [], xLabels = [], yLabels = [], className = '', ariaLabel = 'Activity matrix' }) {
+export function AnalyticsBubbleMatrixChart({ cells = [], xLabels = [], yLabels = [], className = '', ariaLabel = t('Activity matrix') }) {
+  useUiLanguage();
   const bubbleRefs = useRef([]);
   const normalized = useMemo(() => (Array.isArray(cells) ? cells : [])
     .map(cell => ({
@@ -289,7 +294,7 @@ export function AnalyticsBubbleMatrixChart({ cells = [], xLabels = [], yLabels =
   };
 
   const gridChildren = [
-    h('div', { key: 'corner', className: 'analytics-matrix-corner', 'aria-hidden': 'true' }, 'Work type'),
+    h('div', { key: 'corner', className: 'analytics-matrix-corner', 'aria-hidden': 'true' }, t('Work type')),
     ...xLabels.map((label, x) => h('div', {
       key: `column-${x}`,
       className: 'analytics-matrix-column-label',
@@ -302,10 +307,10 @@ export function AnalyticsBubbleMatrixChart({ cells = [], xLabels = [], yLabels =
         const index = cellIndex.get(`${y}:${x}`);
         const cell = Number.isInteger(index) ? normalized[index] : null;
         if (!cell) return h('div', { key: `cell-${y}-${x}`, className: 'analytics-matrix-cell', 'aria-hidden': 'true' });
-        const workType = cell.intentLabel || yLabels[cell.y] || 'Work type';
-        const useCase = cell.useCaseLabel || xLabels[cell.x] || 'Use case';
-        const valueText = `${cell.value.toLocaleString()} ${cell.value === 1 ? 'action' : 'actions'}`;
-        const shareText = `${formatMatrixShare(cell.share)} of ${workType} activity`;
+        const workType = cell.intentLabel || yLabels[cell.y] || t('Work type');
+        const useCase = cell.useCaseLabel || xLabels[cell.x] || t('Use case');
+        const valueText = cell.value === 1 ? t`${cell.value.toLocaleString()} action` : t`${cell.value.toLocaleString()} actions`;
+        const shareText = t`${formatMatrixShare(cell.share)} of ${workType} activity`;
         return h('div', { key: `cell-${y}-${x}`, className: 'analytics-matrix-cell' },
           h('button', {
             ref: element => { bubbleRefs.current[index] = element; },
@@ -332,7 +337,7 @@ export function AnalyticsBubbleMatrixChart({ cells = [], xLabels = [], yLabels =
   return h('div', {
     className: ['analytics-chart-group', 'analytics-categorical-matrix', className].filter(Boolean).join(' '),
     role: 'group',
-    'aria-label': `${ariaLabel}. Bubble size and intensity represent action count. Tab between populated cells or use arrow keys to move through the matrix.`
+    'aria-label': t`${ariaLabel}. Bubble size and intensity represent action count. Tab between populated cells or use arrow keys to move through the matrix.`
   },
   h('div', {
     className: 'analytics-matrix-grid',
@@ -348,9 +353,9 @@ export function AnalyticsBubbleMatrixChart({ cells = [], xLabels = [], yLabels =
 function AccessibleMatrixTable({ cells, xLabels, yLabels }) {
   const values = new Map(cells.map(cell => [`${cell.y}:${cell.x}`, cell.value]));
   return h('table', { className: 'sr-only' },
-    h('caption', null, 'Work type by use case chart data'),
+    h('caption', null, t('Work type by use case chart data')),
     h('thead', null, h('tr', null,
-      h('th', { scope: 'col' }, 'Work type'),
+      h('th', { scope: 'col' }, t('Work type')),
       xLabels.map((label, index) => h('th', { key: `${label}-${index}`, scope: 'col' }, label))
     )),
     h('tbody', null, yLabels.map((label, y) => h('tr', { key: `${label}-${y}` },
@@ -397,10 +402,10 @@ function formatMatrixShare(value) {
 
 function AccessibleChartTable({ labels, values, valueLabel, formatValue, missingValueLabel = '' }) {
   return h('table', { className: 'sr-only' },
-    h('caption', null, 'Chart data'),
-    h('thead', null, h('tr', null, h('th', { scope: 'col' }, 'Time'), h('th', { scope: 'col' }, valueLabel))),
+    h('caption', null, t('Chart data')),
+    h('thead', null, h('tr', null, h('th', { scope: 'col' }, t('Time')), h('th', { scope: 'col' }, valueLabel))),
     h('tbody', null, values.map((value, index) => h('tr', { key: `${index}-${labels[index] || ''}` },
-      h('td', null, labels[index] || `Period ${index + 1}`),
+      h('td', null, labels[index] || t`Period ${index + 1}`),
       h('td', null, value === null && missingValueLabel ? missingValueLabel : formatValue(value))
     )))
   );

@@ -2,12 +2,16 @@
 
 import { STARTUP_BACKGROUND_COLOR } from './startup-background.js';
 import { localWindowWebPreferences, secureLocalWindow } from './window-security.js';
+import { importResourceModule } from './resource-path.js';
+
+const { t } = await importResourceModule('src/ui/i18n.js');
 
 function createRecoveryWindowManager({
   BrowserWindow,
   iconPath = '',
   preloadPath,
   rendererUrl,
+  getLanguagePreference = () => 'system',
   limits,
   installProtocol = () => {},
   isQuitting = () => false,
@@ -21,6 +25,8 @@ function createRecoveryWindowManager({
 
   function create() {
     if (window && !window.isDestroyed()) return window;
+    const url = new URL(rendererUrl);
+    url.searchParams.set('language', getLanguagePreference());
     window = new BrowserWindow({
       width: limits.minWidth,
       height: 620,
@@ -29,13 +35,13 @@ function createRecoveryWindowManager({
       useContentSize: true,
       webPreferences: localWindowWebPreferences(preloadPath, 'relai-recovery', 'application'),
       backgroundColor: STARTUP_BACKGROUND_COLOR,
-      title: 'Rel.AI MCP Recovery',
+      title: t('Rel.AI MCP Recovery'),
       icon: iconPath || undefined,
       autoHideMenuBar: true
     });
     installProtocol(window.webContents.session.protocol);
-    secureLocalWindow(window, { allowedUrl: rendererUrl, onError: onSecurityError });
-    void Promise.resolve(window.loadURL(rendererUrl)).catch(error => {
+    secureLocalWindow(window, { allowedUrl: url.href, onError: onSecurityError });
+    void Promise.resolve(window.loadURL(url.href)).catch(error => {
       onSecurityError(new Error(`Recovery renderer failed to load: ${error instanceof Error ? error.message : String(error)}`));
     });
     window.webContents.on('did-finish-load', () => {

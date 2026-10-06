@@ -1,5 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { closeDrawer, openDrawer } from './drawer.js';
+import { t } from '../i18n.js';
+import { useUiLanguage } from '../i18n-react.js';
 
 const h = React.createElement;
 
@@ -24,6 +26,7 @@ export function openFilterDrawer({
 }
 
 function FilterDrawerContent({ value, resetValue, renderFields, onApply }) {
+  const language = useUiLanguage();
   const [draft, setDraft] = useState(() => clone(value));
   const [busy, setBusy] = useState(false);
   const fields = useMemo(() => {
@@ -34,7 +37,7 @@ function FilterDrawerContent({ value, resetValue, renderFields, onApply }) {
     };
     renderFields?.(collector, draft);
     return collected;
-  }, [draft, renderFields]);
+  }, [draft, renderFields, language]);
 
   const changeField = (field, nextValue) => {
     field.onChange?.(nextValue);
@@ -56,15 +59,15 @@ function FilterDrawerContent({ value, resetValue, renderFields, onApply }) {
   return h('form', { className: 'filter-drawer-form', onSubmit: submit, 'aria-busy': busy ? 'true' : 'false' },
     h('div', { className: 'filter-drawer-fields' }, fields.map((field, index) => h(FilterField, {
       field,
-      key: field.key || `${field.type}-${field.label}-${index}`,
+      key: field.key || `${field.type}-${index}`,
       onChange: value => changeField(field, value)
     }))),
     h('div', { className: 'filter-drawer-footer', role: 'status', 'aria-live': 'polite' },
       h('div', { className: 'filter-drawer-secondary-actions' },
-        h('button', { type: 'button', className: 'secondary', disabled: busy, onClick: () => setDraft(clone(resetValue)) }, 'Reset'),
-        h('button', { type: 'button', className: 'secondary', disabled: busy, onClick: closeDrawer }, 'Cancel')
+        h('button', { type: 'button', className: 'secondary', disabled: busy, onClick: () => setDraft(clone(resetValue)) }, t('Reset')),
+        h('button', { type: 'button', className: 'secondary', disabled: busy, onClick: closeDrawer }, t('Cancel'))
       ),
-      h('button', { type: 'submit', className: 'primary', disabled: busy }, busy ? 'Applying…' : 'Apply filters')
+      h('button', { type: 'submit', className: 'primary', disabled: busy }, busy ? t('Applying…') : t('Apply filters'))
     )
   );
 }
@@ -75,7 +78,7 @@ function FilterField({ field, onChange }) {
     const slug = `filter-${String(field.key || field.label || '').toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
     const name = `${slug}-${radioId.replace(/[^a-z0-9]+/gi, '')}`;
     return h('fieldset', { className: 'filter-field filter-radio-field' },
-      h('legend', null, field.label),
+      h('legend', null, t(field.label)),
       h('div', { className: 'filter-radio-options' }, (field.options || []).map(option => h('label', { key: option.value },
         h('input', {
           type: 'radio',
@@ -89,14 +92,14 @@ function FilterField({ field, onChange }) {
     );
   }
   return h('label', { className: 'filter-field', htmlFor: `filter-select-${field.key || 'field'}` },
-    h('span', null, field.label),
+    h('span', null, t(field.label)),
     h('select', {
       id: `filter-select-${field.key || 'field'}`,
       disabled: field.disabled === true,
       value: field.value,
       onChange: event => onChange(event.currentTarget.value)
     }, (field.options || []).map(option => h('option', { key: option.value, value: option.value }, option.label))),
-    field.help ? h('small', null, field.help) : null
+    field.help ? h('small', null, t(field.help)) : null
   );
 }
 

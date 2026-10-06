@@ -58,7 +58,7 @@ export function mergeActivityEntries(current, incoming) {
   };
 }
 
-export function activityMessage(entry) {
+export function activityMessage(entry, fallback = 'No additional details recorded.') {
   for (const value of [
     entry?.summary,
     entry?.message,
@@ -73,7 +73,7 @@ export function activityMessage(entry) {
     const text = displayText(value);
     if (text) return text;
   }
-  return 'No additional details recorded.';
+  return fallback;
 }
 
 export function activitySessionView(entry, sessionIndex = new Map()) {
@@ -183,18 +183,18 @@ export function activityAbsoluteTime(entry) {
   return timestamp ? new Date(timestamp).toLocaleString() : 'Time unavailable';
 }
 
-export function activityDisplayAction(entry) {
+export function activityDisplayAction(entry, fallback = 'Activity') {
   return displayText(entry?.title)
     || displayText(entry?.operation)
     || displayText(entry?.tool?.operation)
     || displayText(entry?.tool?.title)
-    || activityToolLabel(entry?.tool?.name || entry?.tool || entry?.type);
+    || activityToolLabel(entry?.tool?.name || entry?.tool || entry?.type, fallback);
 }
 
-export function activityToolLabel(tool) {
+export function activityToolLabel(tool, fallback = 'Activity') {
   const raw = displayText(typeof tool === 'object' ? tool?.name : tool);
   const label = raw.replace(/^relai_/, '').replaceAll('_', ' ').replaceAll('-', ' ').trim();
-  return label ? label.charAt(0).toUpperCase() + label.slice(1) : 'Activity';
+  return label ? label.charAt(0).toUpperCase() + label.slice(1) : fallback;
 }
 
 export function activityActionLabel(entry) {
